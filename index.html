@@ -11,7 +11,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
 .header h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: #ccc; }
 .ts { font-size: 11px; color: #555; }
-.section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; }
+.section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; display: flex; align-items: center; justify-content: space-between; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; }
 .card-ticker { font-size: 14px; font-weight: 600; padding-right: 44px; color: #fff; }
@@ -36,6 +36,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .pnl-line { font-size: 12px; margin-top: 4px; }
 .refresh-btn { font-size: 12px; padding: 7px 16px; border-radius: 8px; border: 0.5px solid #333; background: transparent; color: #888; cursor: pointer; }
 .refresh-btn:hover { background: #222; color: #ccc; }
+.icon-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 0.5px solid #333; background: transparent; color: #666; cursor: pointer; }
+.icon-btn:hover { background: #222; color: #aaa; }
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
 .dot-live { background: #2ecc71; animation: pulse 2s infinite; }
 .dot-loading { background: #f39c12; }
@@ -45,6 +47,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
 .ask-btn:hover { background: #1a1a1a; color: #ccc; }
 .note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
+/* Edit panel */
+.edit-panel { background: #1a1a1a; border: 0.5px solid #3a3a3a; border-radius: 10px; padding: 1rem 1.2rem; margin-top: 0.5rem; display: none; }
+.edit-panel.open { display: block; }
+.edit-panel h3 { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.8rem; }
+.pos-row { display: grid; grid-template-columns: 90px 70px 90px 80px 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.pos-row input { background: #111; border: 0.5px solid #333; border-radius: 6px; padding: 5px 8px; color: #f0f0f0; font-size: 12px; width: 100%; }
+.pos-row input::placeholder { color: #444; }
+.del-btn { background: transparent; border: none; color: #555; cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
+.del-btn:hover { color: #e74c3c; }
+.add-row-btn { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 0.5px solid #333; background: transparent; color: #666; cursor: pointer; margin-top: 4px; }
+.add-row-btn:hover { background: #222; color: #aaa; }
+.save-btn { font-size: 11px; padding: 5px 14px; border-radius: 6px; border: none; background: #2ecc71; color: #000; cursor: pointer; font-weight: 600; margin-left: 8px; }
+.col-head { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>
 </head>
 <body>
@@ -61,18 +76,40 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div class="portfolio-bar">
     <div>
-      <div class="total-label">Brokerage value (Revolut)</div>
+      <div class="total-label">Brokerage value (live prices)</div>
       <div class="total-val" id="totalVal">$—</div>
       <div class="pnl-line" id="pnlLine">&nbsp;</div>
     </div>
     <div style="text-align:right;">
       <div class="total-label">Uninvested cash</div>
-      <div style="font-size:22px;font-weight:500;color:#fff;">~$700</div>
+      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$700</div>
       <div style="font-size:10px;color:#444;margin-top:3px;">outside Revolut · deploy into RHM?</div>
     </div>
   </div>
 
-  <div class="section-label">Your positions</div>
+  <div class="section-label">
+    <span>Your positions</span>
+    <button class="icon-btn" onclick="toggleEdit()">✏ Edit positions</button>
+  </div>
+
+  <!-- Edit panel -->
+  <div class="edit-panel" id="editPanel">
+    <h3>Edit your positions</h3>
+    <div style="display:grid;grid-template-columns:90px 70px 90px 80px 30px;gap:8px;margin-bottom:4px;">
+      <span class="col-head">Ticker (Yahoo)</span>
+      <span class="col-head">Shares</span>
+      <span class="col-head">Avg Cost</span>
+      <span class="col-head">Label</span>
+      <span></span>
+    </div>
+    <div id="editRows"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+      <button class="add-row-btn" onclick="addEditRow()">+ Add position</button>
+      <button class="save-btn" onclick="savePositions()">Save & Refresh</button>
+    </div>
+    <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · GLDA.L · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD</p>
+  </div>
+
   <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
 
   <div class="section-label">Watchlist · War thesis plays</div>
@@ -94,16 +131,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I might be missing beyond RHM given EU rearmament and US-Iran war escalation Day 18.')">🔍 Scan defense sector for plays I am missing ↗</button>
   <button class="ask-btn" onclick="openClaude('What does current oil price mean for my GLDA position? Should I add more or hold?')">📊 Oil + GLDA thesis check ↗</button>
 
-  <p class="note">Live data via Vercel proxy → Yahoo Finance · All exchanges: NYSE, XETRA, LSE, Euronext, Milan</p>
+  <p class="note">Live data via Vercel proxy → Yahoo Finance · All exchanges covered · war-portfolio-api.vercel.app</p>
 </div>
 
 <script>
-// *** REPLACE THIS WITH YOUR VERCEL URL AFTER DEPLOYMENT ***
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 
-const POSITIONS = [
-  { sym: 'BRK-B',   display: 'BRK.B',  name: 'Berkshire Hathaway',      shares: 0.6,  avgCost: 492.15, badge: 'hold', thesis: '0.6 shares · Defensive anchor · Buffett $300B cash' },
-  { sym: 'GLDA.PA', display: 'GLDA',   name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 172.39, badge: 'hold', thesis: '0.75 shares · Stagflation hedge · War + Hormuz bullish' },
+const DEFAULT_POSITIONS = [
+  { sym: 'BRK-B',  display: 'BRK.B', name: 'Berkshire Hathaway',      shares: 0.6,  avgCost: 492.15, badge: 'hold', thesis: 'Defensive anchor · Buffett $300B cash' },
+  { sym: 'GLDA.L', display: 'GLDA',  name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 17239,  badge: 'hold', thesis: 'Stagflation hedge · War + Hormuz bullish', gbp: true },
 ];
 
 const WATCHLIST = [
@@ -126,6 +162,17 @@ const MACRO = [
   { sym: '^GDAXI',   id: 'm-dax',  sid: 'm-dax-s',  prefix: '',  dec: 0 },
 ];
 
+function loadSavedPositions() {
+  try {
+    const s = localStorage.getItem('warPositions');
+    return s ? JSON.parse(s) : DEFAULT_POSITIONS;
+  } catch { return DEFAULT_POSITIONS; }
+}
+
+function savePositionsToStorage(pos) {
+  localStorage.setItem('warPositions', JSON.stringify(pos));
+}
+
 async function getQuote(sym) {
   const r = await fetch(`${PROXY}?symbol=${encodeURIComponent(sym)}`);
   if (!r.ok) throw new Error('proxy error');
@@ -133,7 +180,7 @@ async function getQuote(sym) {
 }
 
 function currSym(c) {
-  return c === 'EUR' ? '€' : c === 'GBP' ? '£' : '$';
+  return c === 'EUR' ? '€' : c === 'GBP' ? '£' : c === 'GBp' ? '£' : '$';
 }
 
 function chgHtml(pct) {
@@ -146,36 +193,46 @@ function badgeCls(b) { return b === 'hold' ? 'badge-hold' : b === 'buy' ? 'badge
 function badgeLbl(b) { return b === 'hold' ? 'HOLD' : b === 'buy' ? 'BUY' : 'WATCH'; }
 
 async function loadPositions() {
-  let html = '', totalVal = 0, totalCost = 0;
-  for (const p of POSITIONS) {
+  const positions = loadSavedPositions();
+  let html = '', totalVal = 0, totalCost = 0, hasData = false;
+
+  for (const p of positions) {
     try {
       const q = await getQuote(p.sym);
       const cs = currSym(q.currency);
-      const posVal = q.price * p.shares;
-      const cost = p.avgCost * p.shares;
+      // GBp (pence) needs dividing by 100 for GBP
+      const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
+      const avgCostAdj = p.gbp ? p.avgCost / 100 : p.avgCost;
+      const posVal = priceAdj * p.shares;
+      const cost = avgCostAdj * p.shares;
       const pnl = posVal - cost;
       const pnlPct = (pnl / cost) * 100;
       const sign = pnl >= 0 ? '+' : '';
-      totalVal += posVal; totalCost += cost;
+      // Convert to USD approx for total (rough — good enough for display)
+      totalVal += posVal;
+      totalCost += cost;
+      hasData = true;
+      const displayPrice = q.currency === 'GBp' ? (q.price / 100).toFixed(2) : q.price.toFixed(2);
+      const displaySym = q.currency === 'GBp' ? '£' : cs;
       html += `<div class="card">
         <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
         <div class="card-ticker">${p.display}</div>
         <div class="card-name">${p.name}</div>
-        <div class="card-price">${cs}${q.price.toFixed(2)}</div>
+        <div class="card-price">${displaySym}${displayPrice}</div>
         <div class="card-change">Today: ${chgHtml(q.chgPct)}</div>
-        <div class="card-sub">${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
+        <div class="card-sub">${p.shares} shares · ${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
       </div>`;
     } catch {
-      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display}</div><div class="card-name">${p.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis}</div></div>`;
+      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display || p.sym}</div><div class="card-name">${p.name || ''}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis || ''}</div></div>`;
     }
   }
   document.getElementById('posGrid').innerHTML = html;
-  if (totalCost > 0) {
+  if (hasData && totalCost > 0) {
     const pnl = totalVal - totalCost;
     const pct = (pnl / totalCost) * 100;
     const sign = pnl >= 0 ? '+' : '';
     document.getElementById('totalVal').textContent = '$' + totalVal.toFixed(2);
-    document.getElementById('pnlLine').innerHTML = `<span class="${pnl >= 0 ? 'up' : 'down'}">${sign}$${pnl.toFixed(2)} all-time (${sign}${pct.toFixed(2)}%)</span>`;
+    document.getElementById('pnlLine').innerHTML = `<span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pct.toFixed(2)}% all-time P&L</span>`;
   }
 }
 
@@ -184,12 +241,13 @@ async function loadWatchlist() {
   for (const w of WATCHLIST) {
     try {
       const q = await getQuote(w.sym);
-      const cs = currSym(q.currency);
+      const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
+      const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
       html += `<div class="card">
         <span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span>
         <div class="card-ticker">${w.display}</div>
         <div class="card-name">${w.name}</div>
-        <div class="card-price">${cs}${q.price.toFixed(2)}</div>
+        <div class="card-price">${cs}${priceAdj.toFixed(2)}</div>
         <div class="card-change">${chgHtml(q.chgPct)}</div>
         <div class="card-sub">${w.thesis}</div>
       </div>`;
@@ -213,6 +271,56 @@ async function loadMacro() {
       if (el) { el.textContent = 'N/A'; el.style.color = '#444'; }
     }
   }
+}
+
+// Edit panel
+function toggleEdit() {
+  const panel = document.getElementById('editPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderEditRows();
+}
+
+function renderEditRows() {
+  const positions = loadSavedPositions();
+  const container = document.getElementById('editRows');
+  container.innerHTML = positions.map((p, i) => `
+    <div class="pos-row" id="row-${i}">
+      <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
+      <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
+      <input type="number" value="${p.gbp ? p.avgCost/100 : p.avgCost}" placeholder="492.15" id="cost-${i}" step="0.01">
+      <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
+      <button class="del-btn" onclick="deleteRow(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function addEditRow() {
+  const positions = loadSavedPositions();
+  positions.push({ sym: '', display: '', name: '', shares: 0, avgCost: 0, badge: 'hold', thesis: 'New position' });
+  savePositionsToStorage(positions);
+  renderEditRows();
+}
+
+function deleteRow(i) {
+  const positions = loadSavedPositions();
+  positions.splice(i, 1);
+  savePositionsToStorage(positions);
+  renderEditRows();
+}
+
+function savePositions() {
+  const positions = loadSavedPositions();
+  const updated = positions.map((p, i) => {
+    const sym = document.getElementById(`sym-${i}`)?.value.trim() || p.sym;
+    const shares = parseFloat(document.getElementById(`shares-${i}`)?.value) || p.shares;
+    const cost = parseFloat(document.getElementById(`cost-${i}`)?.value) || p.avgCost;
+    const label = document.getElementById(`label-${i}`)?.value.trim() || p.display;
+    const isGbp = sym.endsWith('.L');
+    return { ...p, sym, shares, avgCost: isGbp ? cost * 100 : cost, display: label, name: label, gbp: isGbp };
+  }).filter(p => p.sym);
+  savePositionsToStorage(updated);
+  document.getElementById('editPanel').classList.remove('open');
+  loadAll();
 }
 
 function openClaude(msg) {
