@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>War Portfolio · Day 18</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #f0f0f0; padding: 1.5rem; min-height: 100vh; }
+.dash { max-width: 960px; margin: 0 auto; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.header h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: #ccc; }
+.ts { font-size: 11px; color: #555; }
+.section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; }
+.card-ticker { font-size: 14px; font-weight: 600; padding-right: 44px; color: #fff; }
+.card-name { font-size: 10px; color: #555; margin-top: 2px; margin-bottom: 10px; line-height: 1.3; }
+.card-price { font-size: 21px; font-weight: 500; color: #fff; letter-spacing: -0.5px; }
+.card-change { font-size: 12px; margin-top: 4px; }
+.card-sub { font-size: 10px; color: #555; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #222; line-height: 1.4; }
+.badge { position: absolute; top: 9px; right: 9px; font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+.badge-hold { background: #0d2a45; color: #4a9eff; }
+.badge-watch { background: #2d1f00; color: #d4900a; }
+.badge-buy { background: #0a2518; color: #2ecc71; }
+.up { color: #2ecc71; }
+.down { color: #e74c3c; }
+.macro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.macro-card { background: #1a1a1a; border-radius: 10px; padding: 0.8rem 1rem; border: 0.5px solid #2a2a2a; }
+.macro-label { font-size: 10px; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+.macro-val { font-size: 18px; font-weight: 500; color: #fff; }
+.macro-sub { font-size: 11px; margin-top: 3px; }
+.portfolio-bar { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 1.1rem 1.4rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.total-val { font-size: 28px; font-weight: 500; color: #fff; letter-spacing: -1px; }
+.total-label { font-size: 11px; color: #555; margin-bottom: 5px; }
+.pnl-line { font-size: 12px; margin-top: 4px; }
+.refresh-btn { font-size: 12px; padding: 7px 16px; border-radius: 8px; border: 0.5px solid #333; background: transparent; color: #888; cursor: pointer; }
+.refresh-btn:hover { background: #222; color: #ccc; }
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+.dot-live { background: #2ecc71; animation: pulse 2s infinite; }
+.dot-loading { background: #f39c12; }
+.dot-error { background: #e74c3c; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.war-bar { background: #1e0a0a; border: 0.5px solid #3d1515; border-radius: 8px; padding: 0.55rem 1rem; font-size: 11px; color: #e74c3c; margin-bottom: 1rem; }
+.ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
+.ask-btn:hover { background: #1a1a1a; color: #ccc; }
+.note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="header">
+    <h2><span class="status-dot dot-loading" id="dot"></span>War Portfolio · Day 18</h2>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="ts" id="ts">Connecting...</span>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="war-bar">⚠ US-Iran Day 18 · Hormuz closed · Oil $93-103 · 70% Iran missile launchers neutralized · EU rearmament €800B locked · Stagflation regime</div>
+
+  <div class="portfolio-bar">
+    <div>
+      <div class="total-label">Brokerage value (Revolut)</div>
+      <div class="total-val" id="totalVal">$—</div>
+      <div class="pnl-line" id="pnlLine">&nbsp;</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="total-label">Uninvested cash</div>
+      <div style="font-size:22px;font-weight:500;color:#fff;">~$700</div>
+      <div style="font-size:10px;color:#444;margin-top:3px;">outside Revolut · deploy into RHM?</div>
+    </div>
+  </div>
+
+  <div class="section-label">Your positions</div>
+  <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
+
+  <div class="section-label">Watchlist · War thesis plays</div>
+  <div class="cards" id="watchGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
+
+  <div class="section-label">Macro signals</div>
+  <div class="macro-grid">
+    <div class="macro-card"><div class="macro-label">Brent Crude</div><div class="macro-val" id="m-oil">—</div><div class="macro-sub" id="m-oil-s" style="color:#555">Hormuz closed</div></div>
+    <div class="macro-card"><div class="macro-label">Gold spot</div><div class="macro-val" id="m-gold">—</div><div class="macro-sub" id="m-gold-s" style="color:#555">ATH Jan 2026</div></div>
+    <div class="macro-card"><div class="macro-label">EUR/USD</div><div class="macro-val" id="m-eur">—</div><div class="macro-sub" id="m-eur-s" style="color:#555">Transatlantic split</div></div>
+    <div class="macro-card"><div class="macro-label">VIX</div><div class="macro-val" id="m-vix">—</div><div class="macro-sub" id="m-vix-s" style="color:#555">War volatility</div></div>
+    <div class="macro-card"><div class="macro-label">S&P 500</div><div class="macro-val" id="m-spy">—</div><div class="macro-sub" id="m-spy-s" style="color:#555">US equities</div></div>
+    <div class="macro-card"><div class="macro-label">DAX</div><div class="macro-val" id="m-dax">—</div><div class="macro-sub" id="m-dax-s" style="color:#555">EU defense hub</div></div>
+  </div>
+
+  <div class="section-label">Quick analysis → Claude</div>
+  <button class="ask-btn" onclick="openClaude('Given today news on Day 18 of the US-Iran war, what is the single best trade I can make with my 700 USD uninvested cash right now? Be blunt.')">💰 Best trade for my $700 right now ↗</button>
+  <button class="ask-btn" onclick="openClaude('Should I buy RHM today at current price? Give me a blunt yes or no with one paragraph reason.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
+  <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I might be missing beyond RHM given EU rearmament and US-Iran war escalation Day 18.')">🔍 Scan defense sector for plays I am missing ↗</button>
+  <button class="ask-btn" onclick="openClaude('What does current oil price mean for my GLDA position? Should I add more or hold?')">📊 Oil + GLDA thesis check ↗</button>
+
+  <p class="note">Live data via Vercel proxy → Yahoo Finance · All exchanges: NYSE, XETRA, LSE, Euronext, Milan</p>
+</div>
+
+<script>
+// *** REPLACE THIS WITH YOUR VERCEL URL AFTER DEPLOYMENT ***
+const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
+
+const POSITIONS = [
+  { sym: 'BRK-B',   display: 'BRK.B',  name: 'Berkshire Hathaway',      shares: 0.6,  avgCost: 492.15, badge: 'hold', thesis: '0.6 shares · Defensive anchor · Buffett $300B cash' },
+  { sym: 'GLDA.PA', display: 'GLDA',   name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 172.39, badge: 'hold', thesis: '0.75 shares · Stagflation hedge · War + Hormuz bullish' },
+];
+
+const WATCHLIST = [
+  { sym: 'RHM.DE', display: 'RHM',       name: 'Rheinmetall AG',    badge: 'buy',   thesis: 'EU rearmament · Target €2,114 · Earnings May 7' },
+  { sym: 'HO.PA',  display: 'Thales',    name: 'Thales SA',         badge: 'watch', thesis: 'EU defense · Radar + C2 systems' },
+  { sym: 'BA.L',   display: 'BAE Sys',   name: 'BAE Systems',       badge: 'watch', thesis: 'UK defense · F-35 + naval' },
+  { sym: 'LDO.MI', display: 'Leonardo',  name: 'Leonardo SpA',      badge: 'watch', thesis: 'Italian defense + aerospace' },
+  { sym: 'SHEL',   display: 'Shell',     name: 'Shell PLC',         badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend' },
+  { sym: 'FRO',    display: 'Frontline', name: 'Frontline Ltd',     badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck' },
+  { sym: 'GOLD',   display: 'Barrick',   name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play' },
+  { sym: 'NEM',    display: 'Newmont',   name: 'Newmont Corp',      badge: 'watch', thesis: 'Gold miner diversifier' },
+];
+
+const MACRO = [
+  { sym: 'BZ=F',     id: 'm-oil',  sid: 'm-oil-s',  prefix: '$', dec: 2 },
+  { sym: 'GC=F',     id: 'm-gold', sid: 'm-gold-s', prefix: '$', dec: 0 },
+  { sym: 'EURUSD=X', id: 'm-eur',  sid: 'm-eur-s',  prefix: '',  dec: 4 },
+  { sym: '^VIX',     id: 'm-vix',  sid: 'm-vix-s',  prefix: '',  dec: 1 },
+  { sym: 'SPY',      id: 'm-spy',  sid: 'm-spy-s',  prefix: '$', dec: 2 },
+  { sym: '^GDAXI',   id: 'm-dax',  sid: 'm-dax-s',  prefix: '',  dec: 0 },
+];
+
+async function getQuote(sym) {
+  const r = await fetch(`${PROXY}?symbol=${encodeURIComponent(sym)}`);
+  if (!r.ok) throw new Error('proxy error');
+  return r.json();
+}
+
+function currSym(c) {
+  return c === 'EUR' ? '€' : c === 'GBP' ? '£' : '$';
+}
+
+function chgHtml(pct) {
+  if (pct == null) return '<span style="color:#555">—</span>';
+  const s = pct >= 0 ? '+' : '';
+  return `<span class="${pct >= 0 ? 'up' : 'down'}">${s}${pct.toFixed(2)}%</span>`;
+}
+
+function badgeCls(b) { return b === 'hold' ? 'badge-hold' : b === 'buy' ? 'badge-buy' : 'badge-watch'; }
+function badgeLbl(b) { return b === 'hold' ? 'HOLD' : b === 'buy' ? 'BUY' : 'WATCH'; }
+
+async function loadPositions() {
+  let html = '', totalVal = 0, totalCost = 0;
+  for (const p of POSITIONS) {
+    try {
+      const q = await getQuote(p.sym);
+      const cs = currSym(q.currency);
+      const posVal = q.price * p.shares;
+      const cost = p.avgCost * p.shares;
+      const pnl = posVal - cost;
+      const pnlPct = (pnl / cost) * 100;
+      const sign = pnl >= 0 ? '+' : '';
+      totalVal += posVal; totalCost += cost;
+      html += `<div class="card">
+        <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
+        <div class="card-ticker">${p.display}</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-price">${cs}${q.price.toFixed(2)}</div>
+        <div class="card-change">Today: ${chgHtml(q.chgPct)}</div>
+        <div class="card-sub">${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
+      </div>`;
+    } catch {
+      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display}</div><div class="card-name">${p.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis}</div></div>`;
+    }
+  }
+  document.getElementById('posGrid').innerHTML = html;
+  if (totalCost > 0) {
+    const pnl = totalVal - totalCost;
+    const pct = (pnl / totalCost) * 100;
+    const sign = pnl >= 0 ? '+' : '';
+    document.getElementById('totalVal').textContent = '$' + totalVal.toFixed(2);
+    document.getElementById('pnlLine').innerHTML = `<span class="${pnl >= 0 ? 'up' : 'down'}">${sign}$${pnl.toFixed(2)} all-time (${sign}${pct.toFixed(2)}%)</span>`;
+  }
+}
+
+async function loadWatchlist() {
+  let html = '';
+  for (const w of WATCHLIST) {
+    try {
+      const q = await getQuote(w.sym);
+      const cs = currSym(q.currency);
+      html += `<div class="card">
+        <span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span>
+        <div class="card-ticker">${w.display}</div>
+        <div class="card-name">${w.name}</div>
+        <div class="card-price">${cs}${q.price.toFixed(2)}</div>
+        <div class="card-change">${chgHtml(q.chgPct)}</div>
+        <div class="card-sub">${w.thesis}</div>
+      </div>`;
+    } catch {
+      html += `<div class="card"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div></div>`;
+    }
+  }
+  document.getElementById('watchGrid').innerHTML = html;
+}
+
+async function loadMacro() {
+  for (const m of MACRO) {
+    try {
+      const q = await getQuote(m.sym);
+      const el = document.getElementById(m.id);
+      const sel = document.getElementById(m.sid);
+      if (el) el.textContent = m.prefix + q.price.toFixed(m.dec);
+      if (sel) sel.innerHTML = chgHtml(q.chgPct);
+    } catch {
+      const el = document.getElementById(m.id);
+      if (el) { el.textContent = 'N/A'; el.style.color = '#444'; }
+    }
+  }
+}
+
+function openClaude(msg) {
+  window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank');
+}
+
+async function loadAll() {
+  const dot = document.getElementById('dot');
+  const ts = document.getElementById('ts');
+  dot.className = 'status-dot dot-loading';
+  ts.textContent = 'Fetching live prices...';
+  try {
+    await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
+    dot.className = 'status-dot dot-live';
+    const now = new Date();
+    ts.textContent = 'Live · ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  } catch {
+    dot.className = 'status-dot dot-error';
+    ts.textContent = 'Error — click Refresh';
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
