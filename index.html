@@ -7,10 +7,19 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #f0f0f0; padding: 1.5rem; min-height: 100vh; }
-.dash { max-width: 960px; margin: 0 auto; }
+.dash { max-width: 1100px; margin: 0 auto; }
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
 .header h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: #ccc; }
 .ts { font-size: 11px; color: #555; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 1.2rem; border-bottom: 0.5px solid #2a2a2a; }
+.tab { font-size: 11px; padding: 6px 16px; border-radius: 8px 8px 0 0; border: 0.5px solid transparent; background: transparent; color: #555; cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; transition: all 0.15s; }
+.tab:hover { color: #aaa; }
+.tab.active { background: #1a1a1a; border-color: #2a2a2a; border-bottom-color: #111; color: #fff; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
 .section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; display: flex; align-items: center; justify-content: space-between; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; }
@@ -23,30 +32,79 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .badge-hold { background: #0d2a45; color: #4a9eff; }
 .badge-watch { background: #2d1f00; color: #d4900a; }
 .badge-buy { background: #0a2518; color: #2ecc71; }
-.up { color: #2ecc71; }
-.down { color: #e74c3c; }
+.badge-tag { background: #1e1e1e; color: #777; font-size: 8px; padding: 2px 5px; border-radius: 3px; border: 0.5px solid #333; }
+.up { color: #2ecc71; } .down { color: #e74c3c; }
+
 .macro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .macro-card { background: #1a1a1a; border-radius: 10px; padding: 0.8rem 1rem; border: 0.5px solid #2a2a2a; }
 .macro-label { font-size: 10px; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
 .macro-val { font-size: 18px; font-weight: 500; color: #fff; }
 .macro-sub { font-size: 11px; margin-top: 3px; }
+
 .portfolio-bar { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 1.1rem 1.4rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .total-val { font-size: 28px; font-weight: 500; color: #fff; letter-spacing: -1px; }
 .total-label { font-size: 11px; color: #555; margin-bottom: 5px; }
 .pnl-line { font-size: 12px; margin-top: 4px; }
+
 .refresh-btn { font-size: 12px; padding: 7px 16px; border-radius: 8px; border: 0.5px solid #333; background: transparent; color: #888; cursor: pointer; }
 .refresh-btn:hover { background: #222; color: #ccc; }
 .icon-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 0.5px solid #333; background: transparent; color: #666; cursor: pointer; }
 .icon-btn:hover { background: #222; color: #aaa; }
+
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
 .dot-live { background: #2ecc71; animation: pulse 2s infinite; }
 .dot-loading { background: #f39c12; }
 .dot-error { background: #e74c3c; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
 .war-bar { background: #1e0a0a; border: 0.5px solid #3d1515; border-radius: 8px; padding: 0.55rem 1rem; font-size: 11px; color: #e74c3c; margin-bottom: 1rem; }
+
+/* Master brief button */
+.brief-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; padding: 13px 18px; border-radius: 10px; border: 0.5px solid #2ecc71; background: #0a2518; color: #2ecc71; cursor: pointer; margin-bottom: 1rem; transition: all 0.15s; }
+.brief-btn:hover { background: #0d3020; }
+.brief-btn .brief-meta { font-size: 10px; color: #555; font-weight: 400; margin-left: auto; }
+
 .ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
 .ask-btn:hover { background: #1a1a1a; color: #ccc; }
-.note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
+
+/* Scanner */
+.scanner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .scanner-grid { grid-template-columns: 1fr; } }
+.scanner-card { background: #1a1a1a; border-radius: 10px; border: 0.5px solid #2a2a2a; overflow: hidden; }
+.scanner-card-header { font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; border-bottom: 0.5px solid #222; }
+.scanner-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 0.5px solid #1e1e1e; gap: 8px; }
+.scanner-row:last-child { border-bottom: none; }
+.scanner-sym { font-size: 13px; font-weight: 600; color: #fff; min-width: 52px; }
+.scanner-name { font-size: 10px; color: #444; flex: 1; }
+.scanner-tag { font-size: 8px; color: #666; background: #1e1e1e; border: 0.5px solid #2a2a2a; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
+.scanner-chg { font-size: 13px; font-weight: 600; min-width: 54px; text-align: right; }
+.scanner-vol { font-size: 10px; color: #555; min-width: 40px; text-align: right; }
+.scanner-status { font-size: 11px; color: #444; padding: 20px 14px; text-align: center; }
+.vol-spike { color: #f39c12; }
+
+/* Sector bars */
+.sector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 0.6rem; }
+.sector-bar-card { background: #1a1a1a; border-radius: 8px; border: 0.5px solid #2a2a2a; padding: 10px 12px; }
+.sector-name { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.sector-avg { font-size: 16px; font-weight: 500; }
+.sector-tickers { font-size: 9px; color: #444; margin-top: 3px; }
+.sector-bar-bg { height: 3px; background: #222; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.sector-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+/* News feed */
+.news-list { display: flex; flex-direction: column; gap: 6px; }
+.news-item { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 8px; padding: 10px 13px; display: flex; gap: 10px; align-items: flex-start; }
+.news-tag-pill { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+.pill-oil-war { background: #1e0a0a; color: #e74c3c; }
+.pill-fed { background: #0d1e3a; color: #4a9eff; }
+.pill-defense { background: #0a2518; color: #2ecc71; }
+.pill-gold { background: #2d1f00; color: #d4900a; }
+.pill-credit { background: #1e1a0a; color: #f39c12; }
+.pill-macro { background: #1a1a1a; color: #666; }
+.news-content { flex: 1; }
+.news-title { font-size: 12px; color: #ddd; line-height: 1.4; }
+.news-meta { font-size: 10px; color: #444; margin-top: 3px; }
+
 /* Edit panel */
 .edit-panel { background: #1a1a1a; border: 0.5px solid #3a3a3a; border-radius: 10px; padding: 1rem 1.2rem; margin-top: 0.5rem; display: none; }
 .edit-panel.open { display: block; }
@@ -60,6 +118,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .add-row-btn:hover { background: #222; color: #aaa; }
 .save-btn { font-size: 11px; padding: 5px 14px; border-radius: 6px; border: none; background: #2ecc71; color: #000; cursor: pointer; font-weight: 600; margin-left: 8px; }
 .col-head { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
+.note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
+
+.spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid #333; border-top-color: #2ecc71; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -72,7 +134,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <div class="war-bar">⚠ US-Iran Day 18 · Hormuz closed · Oil $93-103 · 70% Iran missile launchers neutralized · EU rearmament €800B locked · Stagflation regime</div>
+  <div class="war-bar">⚠ US-Iran Day 18 · Hormuz closed · Oil $93–103 · 70% Iran missile launchers neutralized · EU rearmament €800B locked · Stagflation regime</div>
 
   <div class="portfolio-bar">
     <div>
@@ -83,95 +145,141 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div style="text-align:right;">
       <div class="total-label">Uninvested cash</div>
       <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$700</div>
-      <div style="font-size:10px;color:#444;margin-top:3px;">outside Revolut · deploy into RHM?</div>
+      <div style="font-size:10px;color:#444;margin-top:3px;" id="cashSub">outside Revolut · deploy into RHM?</div>
     </div>
   </div>
 
-  <div class="section-label">
-    <span>Your positions</span>
-    <button class="icon-btn" onclick="toggleEdit()">✏ Edit positions</button>
+  <!-- MASTER BRIEF BUTTON -->
+  <button class="brief-btn" id="briefBtn" onclick="openMasterBrief()">
+    <span id="briefSpinner" style="display:none;"><span class="spinner"></span></span>
+    ⚡ BRIEF CLAUDE — Full Market Intelligence
+    <span class="brief-meta" id="briefMeta">scanner + news + positions → Claude</span>
+  </button>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('portfolio')">Portfolio</button>
+    <button class="tab" onclick="switchTab('scanner')">🔍 Market Scanner</button>
+    <button class="tab" onclick="switchTab('news')">📰 News Feed</button>
+    <button class="tab" onclick="switchTab('analysis')">Quick Analysis</button>
   </div>
 
-  <!-- Edit panel -->
-  <div class="edit-panel" id="editPanel">
-    <h3>Edit your positions</h3>
-    <div style="display:grid;grid-template-columns:90px 70px 90px 80px 30px;gap:8px;margin-bottom:4px;">
-      <span class="col-head">Ticker (Yahoo)</span>
-      <span class="col-head">Shares</span>
-      <span class="col-head">Avg Cost</span>
-      <span class="col-head">Label</span>
-      <span></span>
+  <!-- TAB: PORTFOLIO -->
+  <div class="tab-panel active" id="tab-portfolio">
+    <div class="section-label">
+      <span>Your positions</span>
+      <button class="icon-btn" onclick="toggleEdit()">✏ Edit positions</button>
     </div>
-    <div id="editRows"></div>
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-      <button class="add-row-btn" onclick="addEditRow()">+ Add position</button>
-      <button class="save-btn" onclick="savePositions()">Save & Refresh</button>
+    <div class="edit-panel" id="editPanel">
+      <h3>Edit your positions</h3>
+      <div style="display:grid;grid-template-columns:90px 70px 90px 80px 30px;gap:8px;margin-bottom:4px;">
+        <span class="col-head">Ticker (Yahoo)</span><span class="col-head">Shares</span><span class="col-head">Avg Cost</span><span class="col-head">Label</span><span></span>
+      </div>
+      <div id="editRows"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <button class="add-row-btn" onclick="addEditRow()">+ Add position</button>
+        <button class="save-btn" onclick="savePositions()">Save & Refresh</button>
+      </div>
+      <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · GLDA.L · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD</p>
     </div>
-    <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · GLDA.L · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD</p>
+    <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
+
+    <div class="section-label">Watchlist · War thesis plays</div>
+    <div class="cards" id="watchGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
+
+    <div class="section-label">Macro signals</div>
+    <div class="macro-grid">
+      <div class="macro-card"><div class="macro-label">Brent Crude</div><div class="macro-val" id="m-oil">—</div><div class="macro-sub" id="m-oil-s" style="color:#555">Hormuz closed</div></div>
+      <div class="macro-card"><div class="macro-label">Gold spot</div><div class="macro-val" id="m-gold">—</div><div class="macro-sub" id="m-gold-s" style="color:#555">ATH territory</div></div>
+      <div class="macro-card"><div class="macro-label">EUR/USD</div><div class="macro-val" id="m-eur">—</div><div class="macro-sub" id="m-eur-s" style="color:#555">Transatlantic split</div></div>
+      <div class="macro-card"><div class="macro-label">VIX</div><div class="macro-val" id="m-vix">—</div><div class="macro-sub" id="m-vix-s" style="color:#555">War volatility</div></div>
+      <div class="macro-card"><div class="macro-label">S&P 500</div><div class="macro-val" id="m-spy">—</div><div class="macro-sub" id="m-spy-s" style="color:#555">US equities</div></div>
+      <div class="macro-card"><div class="macro-label">DAX</div><div class="macro-val" id="m-dax">—</div><div class="macro-sub" id="m-dax-s" style="color:#555">EU defense hub</div></div>
+    </div>
   </div>
 
-  <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
-
-  <div class="section-label">Watchlist · War thesis plays</div>
-  <div class="cards" id="watchGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
-
-  <div class="section-label">Macro signals</div>
-  <div class="macro-grid">
-    <div class="macro-card"><div class="macro-label">Brent Crude</div><div class="macro-val" id="m-oil">—</div><div class="macro-sub" id="m-oil-s" style="color:#555">Hormuz closed</div></div>
-    <div class="macro-card"><div class="macro-label">Gold spot</div><div class="macro-val" id="m-gold">—</div><div class="macro-sub" id="m-gold-s" style="color:#555">ATH Jan 2026</div></div>
-    <div class="macro-card"><div class="macro-label">EUR/USD</div><div class="macro-val" id="m-eur">—</div><div class="macro-sub" id="m-eur-s" style="color:#555">Transatlantic split</div></div>
-    <div class="macro-card"><div class="macro-label">VIX</div><div class="macro-val" id="m-vix">—</div><div class="macro-sub" id="m-vix-s" style="color:#555">War volatility</div></div>
-    <div class="macro-card"><div class="macro-label">S&P 500</div><div class="macro-val" id="m-spy">—</div><div class="macro-sub" id="m-spy-s" style="color:#555">US equities</div></div>
-    <div class="macro-card"><div class="macro-label">DAX</div><div class="macro-val" id="m-dax">—</div><div class="macro-sub" id="m-dax-s" style="color:#555">EU defense hub</div></div>
+  <!-- TAB: SCANNER -->
+  <div class="tab-panel" id="tab-scanner">
+    <div class="section-label">
+      <span>War thesis universe — live scan</span>
+      <button class="icon-btn" onclick="loadScanner()">↻ Refresh scan</button>
+    </div>
+    <div id="scannerContent">
+      <div style="font-size:11px;color:#444;padding:8px;">Click Refresh scan or switch to this tab to load...</div>
+    </div>
   </div>
 
-  <div class="section-label">Quick analysis → Claude</div>
-  <button class="ask-btn" onclick="openClaude('Given today news on Day 18 of the US-Iran war, what is the single best trade I can make with my 700 USD uninvested cash right now? Be blunt.')">💰 Best trade for my $700 right now ↗</button>
-  <button class="ask-btn" onclick="openClaude('Should I buy RHM today at current price? Give me a blunt yes or no with one paragraph reason.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
-  <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I might be missing beyond RHM given EU rearmament and US-Iran war escalation Day 18.')">🔍 Scan defense sector for plays I am missing ↗</button>
-  <button class="ask-btn" onclick="openClaude('What does current oil price mean for my GLDA position? Should I add more or hold?')">📊 Oil + GLDA thesis check ↗</button>
+  <!-- TAB: NEWS -->
+  <div class="tab-panel" id="tab-news">
+    <div class="section-label">
+      <span>Live macro headlines</span>
+      <button class="icon-btn" onclick="loadNews()">↻ Refresh</button>
+    </div>
+    <div id="newsContent">
+      <div style="font-size:11px;color:#444;padding:8px;">Click Refresh or switch to this tab to load...</div>
+    </div>
+  </div>
 
-  <p class="note">Live data via Vercel proxy → Yahoo Finance · All exchanges covered · war-portfolio-api.vercel.app</p>
+  <!-- TAB: QUICK ANALYSIS -->
+  <div class="tab-panel" id="tab-analysis">
+    <div class="section-label">Quick analysis → Claude</div>
+    <button class="ask-btn" onclick="openClaude('Given today news on Day 18 of the US-Iran war, what is the single best trade I can make with my uninvested cash right now? Be blunt.')">💰 Best trade for my uninvested cash right now ↗</button>
+    <button class="ask-btn" onclick="openClaude('Should I buy RHM today at current price? Give me a blunt yes or no with one paragraph reason.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
+    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I might be missing beyond RHM given EU rearmament and US-Iran war escalation Day 18.')">🔍 Scan defense sector for plays I am missing ↗</button>
+    <button class="ask-btn" onclick="openClaude('What does current oil price mean for my GLDA position? Should I add more or hold?')">📊 Oil + GLDA thesis check ↗</button>
+    <button class="ask-btn" onclick="openClaude('What are the top 3 risks to my war portfolio right now and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
+    <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position or noise? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
+  </div>
+
+  <p class="note">Live data: Yahoo Finance (positions/macro) · FMP (scanner) · NewsAPI (headlines) · war-portfolio-api.vercel.app</p>
 </div>
 
 <script>
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
+const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
+const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
+const BRIEF_API = 'https://war-portfolio-api.vercel.app/api/brief';
 
 const DEFAULT_POSITIONS = [
-  { sym: 'BRK-B',  display: 'BRK.B', name: 'Berkshire Hathaway',      shares: 0.6,  avgCost: 492.15, badge: 'hold', thesis: 'Defensive anchor · Buffett $300B cash' },
-  { sym: 'GLDA.L', display: 'GLDA',  name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 17239,  badge: 'hold', thesis: 'Stagflation hedge · War + Hormuz bullish', gbp: true },
+  { sym: 'BRK-B', display: 'BRK.B', name: 'Berkshire Hathaway', shares: 0.6, avgCost: 492.15, badge: 'hold', thesis: 'Defensive anchor · Buffett $300B cash' },
+  { sym: 'GLDA.L', display: 'GLDA', name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 17239, badge: 'hold', thesis: 'Stagflation hedge · War + Hormuz bullish', gbp: true },
 ];
 
 const WATCHLIST = [
-  { sym: 'RHM.DE', display: 'RHM',       name: 'Rheinmetall AG',    badge: 'buy',   thesis: 'EU rearmament · Target €2,114 · Earnings May 7' },
-  { sym: 'HO.PA',  display: 'Thales',    name: 'Thales SA',         badge: 'watch', thesis: 'EU defense · Radar + C2 systems' },
-  { sym: 'BA.L',   display: 'BAE Sys',   name: 'BAE Systems',       badge: 'watch', thesis: 'UK defense · F-35 + naval' },
-  { sym: 'LDO.MI', display: 'Leonardo',  name: 'Leonardo SpA',      badge: 'watch', thesis: 'Italian defense + aerospace' },
-  { sym: 'SHEL',   display: 'Shell',     name: 'Shell PLC',         badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend' },
-  { sym: 'FRO',    display: 'Frontline', name: 'Frontline Ltd',     badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck' },
-  { sym: 'GOLD',   display: 'Barrick',   name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play' },
-  { sym: 'NEM',    display: 'Newmont',   name: 'Newmont Corp',      badge: 'watch', thesis: 'Gold miner diversifier' },
+  { sym: 'RHM.DE', display: 'RHM', name: 'Rheinmetall AG', badge: 'buy', thesis: 'EU rearmament · Target €2,114 · Earnings May 7' },
+  { sym: 'HO.PA', display: 'Thales', name: 'Thales SA', badge: 'watch', thesis: 'EU defense · Radar + C2 systems' },
+  { sym: 'BA.L', display: 'BAE Sys', name: 'BAE Systems', badge: 'watch', thesis: 'UK defense · F-35 + naval' },
+  { sym: 'LDO.MI', display: 'Leonardo', name: 'Leonardo SpA', badge: 'watch', thesis: 'Italian defense + aerospace' },
+  { sym: 'SHEL', display: 'Shell', name: 'Shell PLC', badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend' },
+  { sym: 'FRO', display: 'Frontline', name: 'Frontline Ltd', badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck' },
+  { sym: 'GOLD', display: 'Barrick', name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play' },
+  { sym: 'NEM', display: 'Newmont', name: 'Newmont Corp', badge: 'watch', thesis: 'Gold miner diversifier' },
 ];
 
 const MACRO = [
-  { sym: 'BZ=F',     id: 'm-oil',  sid: 'm-oil-s',  prefix: '$', dec: 2 },
-  { sym: 'GC=F',     id: 'm-gold', sid: 'm-gold-s', prefix: '$', dec: 0 },
-  { sym: 'EURUSD=X', id: 'm-eur',  sid: 'm-eur-s',  prefix: '',  dec: 4 },
-  { sym: '^VIX',     id: 'm-vix',  sid: 'm-vix-s',  prefix: '',  dec: 1 },
-  { sym: 'SPY',      id: 'm-spy',  sid: 'm-spy-s',  prefix: '$', dec: 2 },
-  { sym: '^GDAXI',   id: 'm-dax',  sid: 'm-dax-s',  prefix: '',  dec: 0 },
+  { sym: 'BZ=F', id: 'm-oil', sid: 'm-oil-s', prefix: '$', dec: 2 },
+  { sym: 'GC=F', id: 'm-gold', sid: 'm-gold-s', prefix: '$', dec: 0 },
+  { sym: 'EURUSD=X', id: 'm-eur', sid: 'm-eur-s', prefix: '', dec: 4 },
+  { sym: '^VIX', id: 'm-vix', sid: 'm-vix-s', prefix: '', dec: 1 },
+  { sym: 'SPY', id: 'm-spy', sid: 'm-spy-s', prefix: '$', dec: 2 },
+  { sym: '^GDAXI', id: 'm-dax', sid: 'm-dax-s', prefix: '', dec: 0 },
 ];
 
-function loadSavedPositions() {
-  try {
-    const s = localStorage.getItem('warPositions');
-    return s ? JSON.parse(s) : DEFAULT_POSITIONS;
-  } catch { return DEFAULT_POSITIONS; }
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'scanner') loadScanner();
+  if (name === 'news') loadNews();
 }
 
-function savePositionsToStorage(pos) {
-  localStorage.setItem('warPositions', JSON.stringify(pos));
+// Storage
+function loadSavedPositions() {
+  try { const s = localStorage.getItem('warPositions'); return s ? JSON.parse(s) : DEFAULT_POSITIONS; } catch { return DEFAULT_POSITIONS; }
 }
+function savePositionsToStorage(pos) { localStorage.setItem('warPositions', JSON.stringify(pos)); }
 
 async function getQuote(sym) {
   const r = await fetch(`${PROXY}?symbol=${encodeURIComponent(sym)}`);
@@ -179,28 +287,25 @@ async function getQuote(sym) {
   return r.json();
 }
 
-function currSym(c) {
-  return c === 'EUR' ? '€' : c === 'GBP' ? '£' : c === 'GBp' ? '£' : '$';
-}
-
+function currSym(c) { return c === 'EUR' ? '€' : c === 'GBP' || c === 'GBp' ? '£' : '$'; }
 function chgHtml(pct) {
   if (pct == null) return '<span style="color:#555">—</span>';
   const s = pct >= 0 ? '+' : '';
   return `<span class="${pct >= 0 ? 'up' : 'down'}">${s}${pct.toFixed(2)}%</span>`;
 }
-
 function badgeCls(b) { return b === 'hold' ? 'badge-hold' : b === 'buy' ? 'badge-buy' : 'badge-watch'; }
 function badgeLbl(b) { return b === 'hold' ? 'HOLD' : b === 'buy' ? 'BUY' : 'WATCH'; }
+
+// Stored position data for brief
+let _positionData = [];
 
 async function loadPositions() {
   const positions = loadSavedPositions();
   let html = '', totalVal = 0, totalCost = 0, hasData = false;
-
+  _positionData = [];
   for (const p of positions) {
     try {
       const q = await getQuote(p.sym);
-      const cs = currSym(q.currency);
-      // GBp (pence) needs dividing by 100 for GBP
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const avgCostAdj = p.gbp ? p.avgCost / 100 : p.avgCost;
       const posVal = priceAdj * p.shares;
@@ -208,17 +313,15 @@ async function loadPositions() {
       const pnl = posVal - cost;
       const pnlPct = (pnl / cost) * 100;
       const sign = pnl >= 0 ? '+' : '';
-      // Convert to USD approx for total (rough — good enough for display)
-      totalVal += posVal;
-      totalCost += cost;
-      hasData = true;
-      const displayPrice = q.currency === 'GBp' ? (q.price / 100).toFixed(2) : q.price.toFixed(2);
-      const displaySym = q.currency === 'GBp' ? '£' : cs;
+      const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
+      const displayPrice = priceAdj.toFixed(2);
+      totalVal += posVal; totalCost += cost; hasData = true;
+      _positionData.push({ ...p, currentPrice: cs + displayPrice, pnl: sign + pnlPct.toFixed(2) + '%' });
       html += `<div class="card">
         <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
         <div class="card-ticker">${p.display}</div>
         <div class="card-name">${p.name}</div>
-        <div class="card-price">${displaySym}${displayPrice}</div>
+        <div class="card-price">${cs}${displayPrice}</div>
         <div class="card-change">Today: ${chgHtml(q.chgPct)}</div>
         <div class="card-sub">${p.shares} shares · ${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
       </div>`;
@@ -262,8 +365,7 @@ async function loadMacro() {
   for (const m of MACRO) {
     try {
       const q = await getQuote(m.sym);
-      const el = document.getElementById(m.id);
-      const sel = document.getElementById(m.sid);
+      const el = document.getElementById(m.id), sel = document.getElementById(m.sid);
       if (el) el.textContent = m.prefix + q.price.toFixed(m.dec);
       if (sel) sel.innerHTML = chgHtml(q.chgPct);
     } catch {
@@ -273,41 +375,168 @@ async function loadMacro() {
   }
 }
 
-// Edit panel
+// SCANNER
+async function loadScanner() {
+  const el = document.getElementById('scannerContent');
+  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning war thesis universe via FMP...</div>';
+  try {
+    const r = await fetch(SCAN_API);
+    if (!r.ok) throw new Error('Scan API error ' + r.status);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    renderScanner(data, el);
+  } catch (err) {
+    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">Scanner error: ${err.message}</div>`;
+  }
+}
+
+function renderScanner(data, el) {
+  // Top movers table
+  let html = '<div class="scanner-grid">';
+
+  // Gainers
+  html += `<div class="scanner-card">
+    <div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
+  for (const s of (data.topGainers || []).slice(0, 10)) {
+    const volClass = s.volumeSpike >= 2 ? 'vol-spike' : '';
+    html += `<div class="scanner-row">
+      <span class="scanner-sym">${s.symbol}</span>
+      <span class="scanner-name">${(s.name || '').slice(0, 22)}</span>
+      <span class="scanner-tag">${s.tag}</span>
+      <span class="scanner-chg up">+${s.changePct}%</span>
+      <span class="scanner-vol ${volClass}" title="Volume spike vs avg">${s.volumeSpike}x</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Losers
+  html += `<div class="scanner-card">
+    <div class="scanner-card-header">🔴 Top Losers — War Universe</div>`;
+  for (const s of (data.topLosers || []).slice(0, 5)) {
+    html += `<div class="scanner-row">
+      <span class="scanner-sym">${s.symbol}</span>
+      <span class="scanner-name">${(s.name || '').slice(0, 22)}</span>
+      <span class="scanner-tag">${s.tag}</span>
+      <span class="scanner-chg down">${s.changePct}%</span>
+      <span class="scanner-vol">${s.volumeSpike}x</span>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // Sector bars
+  html += '<div class="section-label" style="margin-top:1.4rem;">Sector performance</div>';
+  html += '<div class="sector-grid">';
+  for (const [tag, items] of Object.entries(data.byTag || {})) {
+    const avg = items.reduce((s, i) => s + i.changePct, 0) / items.length;
+    const sign = avg >= 0 ? '+' : '';
+    const color = avg >= 0 ? '#2ecc71' : '#e74c3c';
+    const barWidth = Math.min(Math.abs(avg) * 10, 100);
+    html += `<div class="sector-bar-card">
+      <div class="sector-name">${tag}</div>
+      <div class="sector-avg" style="color:${color}">${sign}${avg.toFixed(2)}%</div>
+      <div class="sector-tickers">${items.map(i => i.symbol).join(' · ')}</div>
+      <div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barWidth}%;background:${color}"></div></div>
+    </div>`;
+  }
+  html += '</div>';
+
+  const ts = new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${(data.all || []).length} tickers · via FMP</p>`;
+  el.innerHTML = html;
+}
+
+// NEWS
+async function loadNews() {
+  const el = document.getElementById('newsContent');
+  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Fetching macro headlines...</div>';
+  try {
+    const r = await fetch(NEWS_API);
+    if (!r.ok) throw new Error('News API error ' + r.status);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    renderNews(data, el);
+  } catch (err) {
+    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">News error: ${err.message}</div>`;
+  }
+}
+
+function renderNews(data, el) {
+  const pillMap = { 'oil-war': 'pill-oil-war', 'fed': 'pill-fed', 'defense': 'pill-defense', 'gold': 'pill-gold', 'credit': 'pill-credit', 'macro': 'pill-macro' };
+  const labelMap = { 'oil-war': '🔥 OIL/WAR', 'fed': '🏦 FED', 'defense': '🛡 DEFENSE', 'gold': '🪙 GOLD', 'credit': '⚠ CREDIT', 'macro': 'MACRO' };
+  let html = '<div class="news-list">';
+  for (const a of (data.articles || [])) {
+    const time = new Date(a.publishedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const pillCls = pillMap[a.tag] || 'pill-macro';
+    const label = labelMap[a.tag] || a.tag;
+    const link = a.url ? `href="${a.url}" target="_blank"` : '';
+    html += `<div class="news-item">
+      <span class="news-tag-pill ${pillCls}">${label}</span>
+      <div class="news-content">
+        <div class="news-title"><a ${link} style="color:inherit;text-decoration:none;">${a.title}</a></div>
+        <div class="news-meta">${a.source} · ${time}</div>
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  const ts = new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  html += `<p class="note" style="margin-top:1rem;">Last fetch: ${ts} · ${data.count} headlines · via NewsAPI</p>`;
+  el.innerHTML = html;
+}
+
+// MASTER BRIEF
+async function openMasterBrief() {
+  const btn = document.getElementById('briefBtn');
+  const spinner = document.getElementById('briefSpinner');
+  const meta = document.getElementById('briefMeta');
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+  meta.textContent = 'Building brief...';
+
+  try {
+    const cash = document.getElementById('cashDisplay').textContent;
+    const r = await fetch(BRIEF_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ positions: _positionData, cash }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    meta.textContent = `${data.meta.scanTickers} tickers · ${data.meta.newsHeadlines} headlines · ${data.meta.positions} positions`;
+    window.open(`https://claude.ai/new?q=${encodeURIComponent(data.prompt)}`, '_blank');
+  } catch (err) {
+    meta.textContent = 'Error — ' + err.message;
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+// EDIT PANEL
 function toggleEdit() {
   const panel = document.getElementById('editPanel');
   panel.classList.toggle('open');
   if (panel.classList.contains('open')) renderEditRows();
 }
-
 function renderEditRows() {
   const positions = loadSavedPositions();
-  const container = document.getElementById('editRows');
-  container.innerHTML = positions.map((p, i) => `
+  document.getElementById('editRows').innerHTML = positions.map((p, i) => `
     <div class="pos-row" id="row-${i}">
       <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
       <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
       <input type="number" value="${p.gbp ? p.avgCost/100 : p.avgCost}" placeholder="492.15" id="cost-${i}" step="0.01">
       <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
       <button class="del-btn" onclick="deleteRow(${i})">×</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
-
 function addEditRow() {
   const positions = loadSavedPositions();
   positions.push({ sym: '', display: '', name: '', shares: 0, avgCost: 0, badge: 'hold', thesis: 'New position' });
-  savePositionsToStorage(positions);
-  renderEditRows();
+  savePositionsToStorage(positions); renderEditRows();
 }
-
 function deleteRow(i) {
-  const positions = loadSavedPositions();
-  positions.splice(i, 1);
-  savePositionsToStorage(positions);
-  renderEditRows();
+  const positions = loadSavedPositions(); positions.splice(i, 1);
+  savePositionsToStorage(positions); renderEditRows();
 }
-
 function savePositions() {
   const positions = loadSavedPositions();
   const updated = positions.map((p, i) => {
@@ -323,20 +552,16 @@ function savePositions() {
   loadAll();
 }
 
-function openClaude(msg) {
-  window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank');
-}
+function openClaude(msg) { window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank'); }
 
 async function loadAll() {
-  const dot = document.getElementById('dot');
-  const ts = document.getElementById('ts');
+  const dot = document.getElementById('dot'), ts = document.getElementById('ts');
   dot.className = 'status-dot dot-loading';
   ts.textContent = 'Fetching live prices...';
   try {
     await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
     dot.className = 'status-dot dot-live';
-    const now = new Date();
-    ts.textContent = 'Live · ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+    ts.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
   } catch {
     dot.className = 'status-dot dot-error';
     ts.textContent = 'Error — click Refresh';
