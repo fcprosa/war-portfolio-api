@@ -1,65 +1,130 @@
-const NEWS_KEY = process.env.NEWS_API_KEY;
+// /api/news.js
+// Real-time news via RSS feeds — no API key, no delay
+// Sources: Reuters, FT, BBC, WSJ, Bloomberg, CNBC, Al Jazeera
 
-const WAR_QUERIES = [
-  'Hormuz OR Iran war oil',
-  'Fed Powell interest rates inflation',
-  'EU rearmament defense spending',
-  'gold stagflation commodities',
-  'private credit banking crisis',
+const RSS_FEEDS = [
+  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
+  { url: 'https://feeds.reuters.com/Reuters/worldNews', source: 'Reuters' },
+  { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', source: 'BBC' },
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', source: 'BBC' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', source: 'CNBC' },
+  { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC Markets' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
+  { url: 'https://rss.app/feeds/tvCoDpFhMDuHqZ4Z.xml', source: 'FT' },
+  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147', source: 'CNBC Energy' },
 ];
+
+const WAR_KEYWORDS = [
+  'hormuz', 'iran', 'oil', 'crude', 'brent', 'wti',
+  'fed', 'powell', 'rate', 'inflation', 'stagflation',
+  'defense', 'rearmament', 'military', 'nato', 'ukraine',
+  'gold', 'commodity', 'commodities',
+  'bank', 'credit', 'financial', 'markets',
+  'trump', 'tariff', 'war', 'conflict', 'middle east',
+  'opec', 'energy', 'gas', 'tanker', 'shipping',
+  'fertilizer', 'uranium', 'nuclear',
+];
+
+function tagArticle(title, desc) {
+  const text = (title + ' ' + (desc || '')).toLowerCase();
+  if (text.includes('hormuz') || text.includes('strait') || text.includes('iran') || text.includes('crude') || text.includes('brent') || text.includes('oil price')) return 'oil-war';
+  if (text.includes('fed') || text.includes('powell') || text.includes('interest rate') || text.includes('inflation') || text.includes('stagflation')) return 'fed';
+  if (text.includes('defense') || text.includes('rearmament') || text.includes('military') || text.includes('nato') || text.includes('weapon')) return 'defense';
+  if (text.includes('gold') || text.includes('silver') || text.includes('precious metal')) return 'gold';
+  if (text.includes('credit') || text.includes('private credit') || text.includes('bank crisis') || text.includes('svb')) return 'credit';
+  if (text.includes('fertilizer') || text.includes('agriculture') || text.includes('wheat') || text.includes('grain')) return 'agriculture';
+  if (text.includes('uranium') || text.includes('nuclear energy')) return 'uranium';
+  if (text.includes('tariff') || text.includes('trade war') || text.includes('trump')) return 'macro';
+  return 'macro';
+}
+
+function isRelevant(title, desc) {
+  const text = (title + ' ' + (desc || '')).toLowerCase();
+  return WAR_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function parseRSSDate(dateStr) {
+  try { return new Date(dateStr).toISOString(); } catch { return new Date().toISOString(); }
+}
+
+function extractItems(xml, sourceName) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const block = match[1];
+    const title = (block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || block.match(/<title>(.*?)<\/title>/) || [])[1] || '';
+    const link = (block.match(/<link>(.*?)<\/link>/) || block.match(/<link.*?href="(.*?)"/) || [])[1] || '';
+    const desc = (block.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || block.match(/<description>(.*?)<\/description>/) || [])[1] || '';
+    const pubDate = (block.match(/<pubDate>(.*?)<\/pubDate>/) || block.match(/<dc:date>(.*?)<\/dc:date>/) || [])[1] || '';
+    const cleanTitle = title.replace(/<[^>]+>/g, '').trim();
+    const cleanDesc = desc.replace(/<[^>]+>/g, '').slice(0, 150).trim();
+    if (cleanTitle && isRelevant(cleanTitle, cleanDesc)) {
+      items.push({
+        title: cleanTitle,
+        source: sourceName,
+        url: link.trim(),
+        publishedAt: parseRSSDate(pubDate),
+        description: cleanDesc,
+        tag: tagArticle(cleanTitle, cleanDesc),
+      });
+    }
+  }
+  return items;
+}
+
+async function fetchFeed(feed) {
+  try {
+    const r = await fetch(feed.url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!r.ok) return [];
+    const xml = await r.text();
+    return extractItems(xml, feed.source);
+  } catch {
+    return [];
+  }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-
-  if (!NEWS_KEY) return res.status(500).json({ error: 'NEWS_API_KEY not configured' });
+  // Cache for 5 minutes
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
 
   try {
-    // Fetch with combined query to stay within free tier limits (1 call)
-    const q = encodeURIComponent(
-      'Hormuz OR "Iran war" OR "Fed rate" OR "EU rearmament" OR stagflation OR "private credit" OR "oil price"'
-    );
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${NEWS_KEY}`;
+    // Fetch all feeds in parallel
+    const results = await Promise.allSettled(RSS_FEEDS.map(fetchFeed));
+    const allItems = results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value);
 
-    const r = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
+    // Deduplicate by title similarity
+    const seen = new Set();
+    const unique = allItems.filter(item => {
+      const key = item.title.slice(0, 60).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 
-    if (!r.ok) throw new Error(`NewsAPI error ${r.status}`);
-    const data = await r.json();
+    // Sort by date, newest first
+    unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
-    if (data.status !== 'ok') throw new Error(data.message || 'NewsAPI error');
-
-    const articles = (data.articles || [])
-      .filter(a => a.title && !a.title.includes('[Removed]'))
-      .map(a => ({
-        title: a.title,
-        source: a.source?.name || 'Unknown',
-        url: a.url,
-        publishedAt: a.publishedAt,
-        description: a.description?.slice(0, 120) || '',
-      }))
-      .slice(0, 15);
-
-    // Tag articles by theme
-    const tagged = articles.map(a => {
-      const text = (a.title + ' ' + a.description).toLowerCase();
-      let tag = 'macro';
-      if (text.includes('hormuz') || text.includes('iran') || text.includes('oil') || text.includes('crude')) tag = 'oil-war';
-      else if (text.includes('fed') || text.includes('powell') || text.includes('rate') || text.includes('inflation')) tag = 'fed';
-      else if (text.includes('defense') || text.includes('rearmament') || text.includes('military') || text.includes('nato')) tag = 'defense';
-      else if (text.includes('gold') || text.includes('commodity') || text.includes('stagflation')) tag = 'gold';
-      else if (text.includes('credit') || text.includes('bank') || text.includes('financial')) tag = 'credit';
-      return { ...a, tag };
-    });
+    const top = unique.slice(0, 20);
 
     return res.status(200).json({
       timestamp: new Date().toISOString(),
-      count: tagged.length,
-      articles: tagged,
+      count: top.length,
+      source: 'RSS — Reuters, BBC, CNBC, Al Jazeera (real-time)',
+      articles: top,
     });
 
   } catch (err) {
-    return res.status(502).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
