@@ -231,14 +231,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position or noise? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
   </div>
 
-  <p class="note">Live data: Yahoo Finance (positions/macro) · FMP (scanner) · NewsAPI (headlines) · war-portfolio-api.vercel.app</p>
+  <p class="note">Live data: Yahoo Finance (positions/macro/scanner) · RSS feeds — Reuters, BBC, CNBC, Al Jazeera (real-time, no delay) · war-portfolio-api.vercel.app</p>
 </div>
 
 <script>
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
-const BRIEF_API = 'https://war-portfolio-api.vercel.app/api/brief';
 
 const DEFAULT_POSITIONS = [
   { sym: 'BRK-B', display: 'BRK.B', name: 'Berkshire Hathaway', shares: 0.6, avgCost: 492.15, badge: 'hold', thesis: 'Defensive anchor · Buffett $300B cash' },
@@ -378,7 +377,7 @@ async function loadMacro() {
 // SCANNER
 async function loadScanner() {
   const el = document.getElementById('scannerContent');
-  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning war thesis universe via FMP...</div>';
+  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning 115 tickers across all sectors...</div>';
   try {
     const r = await fetch(SCAN_API);
     if (!r.ok) throw new Error('Scan API error ' + r.status);
@@ -498,19 +497,77 @@ async function openMasterBrief() {
   const meta = document.getElementById('briefMeta');
   btn.disabled = true;
   spinner.style.display = 'inline';
-  meta.textContent = 'Building brief...';
+  meta.textContent = 'Fetching scan + news...';
 
   try {
     const cash = document.getElementById('cashDisplay').textContent;
-    const r = await fetch(BRIEF_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ positions: _positionData, cash }),
-    });
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    meta.textContent = `${data.meta.scanTickers} tickers · ${data.meta.newsHeadlines} headlines · ${data.meta.positions} positions`;
-    window.open(`https://claude.ai/new?q=${encodeURIComponent(data.prompt)}`, '_blank');
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Fetch scan + news in parallel client-side
+    const [scanRes, newsRes] = await Promise.allSettled([
+      fetch(SCAN_API).then(r => r.json()),
+      fetch(NEWS_API).then(r => r.json()),
+    ]);
+
+    const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
+    const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+
+    // Build prompt
+    let prompt = `You are my personal war portfolio strategist. Today is ${today}. US-Iran war ongoing. Hormuz closed. Stagflation regime.
+
+=== MY PORTFOLIO ===
+Uninvested cash: ${cash}
+`;
+    if (_positionData.length > 0) {
+      prompt += '\nPositions:\n';
+      for (const p of _positionData) {
+        prompt += `- ${p.display || p.sym}: ${p.shares} shares | Current: ${p.currentPrice || '?'} | P&L: ${p.pnl || '?'} | Thesis: ${p.thesis}\n`;
+      }
+    }
+
+    if (scan?.topGainers) {
+      prompt += `\n=== LIVE MARKET SCAN — ${scan.fetched}/${scan.total} TICKERS ===\n`;
+      prompt += `TOP GAINERS:\n`;
+      for (const s of scan.topGainers.slice(0, 10)) {
+        const sign = s.changePct >= 0 ? '+' : '';
+        prompt += `  ${s.symbol} (${s.tag}): ${sign}${s.changePct}% @ $${s.price}\n`;
+      }
+      prompt += `TOP LOSERS:\n`;
+      for (const s of scan.topLosers.slice(0, 5)) {
+        prompt += `  ${s.symbol} (${s.tag}): ${s.changePct}% @ $${s.price}\n`;
+      }
+      if (scan.sectorSummary) {
+        prompt += `\nSECTOR AVERAGES:\n`;
+        for (const sec of scan.sectorSummary) {
+          const sign = sec.avg >= 0 ? '+' : '';
+          prompt += `  ${sec.tag.toUpperCase()}: ${sign}${sec.avg}% avg (${sec.count} stocks)\n`;
+        }
+      }
+    }
+
+    if (news?.articles?.length) {
+      prompt += `\n=== LIVE NEWS — ${news.articles.length} HEADLINES ===\n`;
+      for (const a of news.articles.slice(0, 15)) {
+        const time = new Date(a.publishedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        prompt += `[${time}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
+      }
+    }
+
+    prompt += `
+=== YOUR TASK ===
+Based on everything above give me:
+1. What actually changed in the last few hours that matters
+2. Which of my positions are affected and how
+3. Top 3 war thesis movers right now — buy/hold/avoid verdict with price
+4. Any sector showing unusual movement I'm not positioned in
+5. One high-conviction action to take today
+Be blunt. No hedging. High conviction only.`;
+
+    const tickerCount = scan?.fetched || 0;
+    const newsCount = news?.count || 0;
+    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ready`;
+    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank');
+
   } catch (err) {
     meta.textContent = 'Error — ' + err.message;
   } finally {
