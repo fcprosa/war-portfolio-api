@@ -184,7 +184,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
 
-    <div class="section-label">Watchlist · War thesis plays</div>
+    <div class="section-label">
+      <span>Watchlist &middot; War thesis plays</span>
+      <button class="icon-btn" onclick="toggleWatchAdd()" id="watchAddBtn">+ Watch</button>
+    </div>
+    <div id="watchAddForm" style="display:none;background:#1a1a1a;border:0.5px solid #2ecc71;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Add to watchlist</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input id="w-sym" type="text" placeholder="Ticker (e.g. RTX)" style="background:#111;border:0.5px solid #333;border-radius:6px;padding:6px 10px;color:#f0f0f0;font-size:12px;width:130px;" onkeydown="if(event.key==='Enter')addToWatchlist()">
+        <input id="w-note" type="text" placeholder="Note (e.g. US defense missiles)" style="background:#111;border:0.5px solid #333;border-radius:6px;padding:6px 10px;color:#f0f0f0;font-size:12px;flex:1;min-width:160px;" onkeydown="if(event.key==='Enter')addToWatchlist()">
+        <button onclick="addToWatchlist()" style="background:#2ecc71;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;">Add</button>
+        <button onclick="toggleWatchAdd()" style="background:transparent;color:#555;border:0.5px solid #333;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;">Cancel</button>
+      </div>
+      <div id="w-status" style="font-size:10px;color:#555;margin-top:6px;"></div>
+    </div>
     <div class="cards" id="watchGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
 
     <div class="section-label">Macro signals</div>
@@ -244,7 +257,7 @@ const DEFAULT_POSITIONS = [
   { sym: 'GLDA.L', display: 'GLDA', name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 17239, badge: 'hold', thesis: 'Stagflation hedge · War + Hormuz bullish', gbp: true },
 ];
 
-const WATCHLIST = [
+const DEFAULT_WATCHLIST = [
   { sym: 'RHM.DE', display: 'RHM', name: 'Rheinmetall AG', badge: 'buy', thesis: 'EU rearmament · Target €2,114 · Earnings May 7' },
   { sym: 'HO.PA', display: 'Thales', name: 'Thales SA', badge: 'watch', thesis: 'EU defense · Radar + C2 systems' },
   { sym: 'BA.L', display: 'BAE Sys', name: 'BAE Systems', badge: 'watch', thesis: 'UK defense · F-35 + naval' },
@@ -254,6 +267,82 @@ const WATCHLIST = [
   { sym: 'GOLD', display: 'Barrick', name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play' },
   { sym: 'NEM', display: 'Newmont', name: 'Newmont Corp', badge: 'watch', thesis: 'Gold miner diversifier' },
 ];
+
+function loadWatchlistItems() {
+  try {
+    const s = localStorage.getItem('warWatchlist');
+    return s ? JSON.parse(s) : DEFAULT_WATCHLIST;
+  } catch { return DEFAULT_WATCHLIST; }
+}
+function saveWatchlistItems(items) {
+  localStorage.setItem('warWatchlist', JSON.stringify(items));
+}
+
+// Quick add form
+function toggleWatchAdd() {
+  const form = document.getElementById('watchAddForm');
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    document.getElementById('w-sym').focus();
+    document.getElementById('w-status').textContent = '';
+    document.getElementById('w-sym').value = '';
+    document.getElementById('w-note').value = '';
+  }
+}
+
+async function addToWatchlist() {
+  const symRaw = document.getElementById('w-sym').value.trim().toUpperCase();
+  const note = document.getElementById('w-note').value.trim();
+  const status = document.getElementById('w-status');
+  if (!symRaw) { status.textContent = 'Enter a ticker symbol'; status.style.color = '#e74c3c'; return; }
+
+  status.textContent = 'Fetching price...'; status.style.color = '#555';
+
+  try {
+    const r = await fetch(PROXY + '?symbol=' + encodeURIComponent(symRaw));
+    const q = await r.json();
+    if (q.error) throw new Error('Ticker not found');
+
+    const items = loadWatchlistItems();
+    if (items.find(i => i.sym.toUpperCase() === symRaw)) {
+      status.textContent = symRaw + ' already in watchlist'; status.style.color = '#f39c12'; return;
+    }
+
+    const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
+    const cs = q.currency === 'GBp' ? '£' : (q.currency === 'EUR' ? '€' : '$');
+    const display = symRaw.split('.')[0];
+
+    items.push({
+      sym: symRaw,
+      display,
+      name: display,
+      badge: 'watch',
+      thesis: note || 'Added to watchlist',
+      custom: true,
+    });
+    saveWatchlistItems(items);
+
+    status.textContent = '✓ Added ' + symRaw + ' at ' + cs + priceAdj.toFixed(2);
+    status.style.color = '#2ecc71';
+    document.getElementById('w-sym').value = '';
+    document.getElementById('w-note').value = '';
+
+    // Reload watchlist
+    await loadWatchlist();
+    // Close form after 1.5s
+    setTimeout(() => { document.getElementById('watchAddForm').style.display = 'none'; }, 1500);
+  } catch(e) {
+    status.textContent = 'Could not find ticker: ' + symRaw;
+    status.style.color = '#e74c3c';
+  }
+}
+
+function removeFromWatchlist(sym) {
+  const items = loadWatchlistItems().filter(i => i.sym !== sym);
+  saveWatchlistItems(items);
+  loadWatchlist();
+}
 
 const MACRO = [
   { sym: 'BZ=F', id: 'm-oil', sid: 'm-oil-s', prefix: '$', dec: 2 },
@@ -339,22 +428,30 @@ async function loadPositions() {
 }
 
 async function loadWatchlist() {
+  const items = loadWatchlistItems();
   let html = '';
-  for (const w of WATCHLIST) {
+  for (const w of items) {
     try {
       const q = await getQuote(w.sym);
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
-      html += `<div class="card">
+      const removeBtn = w.custom !== false
+        ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>`
+        : '';
+      html += `<div class="card" style="position:relative;">
         <span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span>
         <div class="card-ticker">${w.display}</div>
         <div class="card-name">${w.name}</div>
         <div class="card-price">${cs}${priceAdj.toFixed(2)}</div>
         <div class="card-change">${chgHtml(q.chgPct)}</div>
-        <div class="card-sub">${w.thesis}</div>
+        <div class="card-sub" style="padding-right:${w.custom !== false ? '14px' : '0'}">${w.thesis}</div>
+        ${removeBtn}
       </div>`;
     } catch {
-      html += `<div class="card"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div></div>`;
+      const removeBtn = w.custom !== false
+        ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>`
+        : '';
+      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div>${removeBtn}</div>`;
     }
   }
   document.getElementById('watchGrid').innerHTML = html;
