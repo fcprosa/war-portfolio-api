@@ -1,92 +1,134 @@
-const FMP_KEY = process.env.FMP_API_KEY;
+// /api/scan.js
+// War thesis universe scanner — Yahoo Finance, same source as quote.js
 
-// War thesis sector tags
-const WAR_TAGS = {
-  // Energy
-  'SHEL': 'oil', 'XOM': 'oil', 'CVX': 'oil', 'TTE': 'oil', 'EQNR': 'oil', 'BP': 'oil',
-  'COP': 'oil', 'OXY': 'oil', 'PXD': 'oil', 'DVN': 'oil', 'HAL': 'oil', 'SLB': 'oil',
-  // Tankers / Shipping
-  'FRO': 'tanker', 'STNG': 'tanker', 'DHT': 'tanker', 'TNK': 'tanker', 'INSW': 'tanker',
-  'ZIM': 'shipping', 'SBLK': 'shipping', 'GOGL': 'shipping',
-  // Defense US
-  'RTX': 'defense', 'LMT': 'defense', 'NOC': 'defense', 'GD': 'defense', 'BA': 'defense',
-  'LDOS': 'defense', 'KTOS': 'defense', 'CACI': 'defense', 'MRCY': 'defense',
-  // Gold
-  'GOLD': 'gold', 'NEM': 'gold', 'AEM': 'gold', 'WPM': 'gold', 'FNV': 'gold',
-  'KGC': 'gold', 'AGI': 'gold', 'OR': 'gold',
-  // Fertilizers
-  'CF': 'fertilizer', 'MOS': 'fertilizer', 'NTR': 'fertilizer', 'IPI': 'fertilizer',
-  // Uranium
-  'CCJ': 'uranium', 'UEC': 'uranium', 'DNN': 'uranium', 'NXE': 'uranium',
-  // Cyber
-  'CRWD': 'cyber', 'PANW': 'cyber', 'S': 'cyber', 'FTNT': 'cyber',
-  // Commodities
-  'FCX': 'commodities', 'GLEN': 'commodities', 'BHP': 'commodities', 'RIO': 'commodities',
-  // Insurance / War risk
-  'AIG': 'insurance', 'MKL': 'insurance', 'RNR': 'insurance',
-  // Ag
-  'ADM': 'agriculture', 'BG': 'agriculture', 'CTVA': 'agriculture',
-};
+const WAR_UNIVERSE = [
+  { sym: 'SHEL',   name: 'Shell',            tag: 'oil' },
+  { sym: 'XOM',    name: 'ExxonMobil',       tag: 'oil' },
+  { sym: 'CVX',    name: 'Chevron',          tag: 'oil' },
+  { sym: 'COP',    name: 'ConocoPhillips',   tag: 'oil' },
+  { sym: 'OXY',    name: 'Occidental',       tag: 'oil' },
+  { sym: 'HAL',    name: 'Halliburton',      tag: 'oil' },
+  { sym: 'SLB',    name: 'SLB',              tag: 'oil' },
+  { sym: 'FRO',    name: 'Frontline',        tag: 'tanker' },
+  { sym: 'STNG',   name: 'Scorpio Tankers',  tag: 'tanker' },
+  { sym: 'DHT',    name: 'DHT Holdings',     tag: 'tanker' },
+  { sym: 'TNK',    name: 'Teekay Tankers',   tag: 'tanker' },
+  { sym: 'INSW',   name: 'Intl Seaways',     tag: 'tanker' },
+  { sym: 'ZIM',    name: 'ZIM Integrated',   tag: 'shipping' },
+  { sym: 'SBLK',   name: 'Star Bulk',        tag: 'shipping' },
+  { sym: 'RTX',    name: 'Raytheon',         tag: 'defense-us' },
+  { sym: 'LMT',    name: 'Lockheed Martin',  tag: 'defense-us' },
+  { sym: 'NOC',    name: 'Northrop Grumman', tag: 'defense-us' },
+  { sym: 'GD',     name: 'General Dynamics', tag: 'defense-us' },
+  { sym: 'KTOS',   name: 'Kratos Defense',   tag: 'defense-us' },
+  { sym: 'RHM.DE', name: 'Rheinmetall',      tag: 'defense-eu' },
+  { sym: 'BA.L',   name: 'BAE Systems',      tag: 'defense-eu' },
+  { sym: 'HO.PA',  name: 'Thales',           tag: 'defense-eu' },
+  { sym: 'LDO.MI', name: 'Leonardo',         tag: 'defense-eu' },
+  { sym: 'GOLD',   name: 'Barrick Gold',     tag: 'gold' },
+  { sym: 'NEM',    name: 'Newmont',          tag: 'gold' },
+  { sym: 'WPM',    name: 'Wheaton Precious', tag: 'gold' },
+  { sym: 'FNV',    name: 'Franco-Nevada',    tag: 'gold' },
+  { sym: 'AEM',    name: 'Agnico Eagle',     tag: 'gold' },
+  { sym: 'CF',     name: 'CF Industries',    tag: 'fertilizer' },
+  { sym: 'MOS',    name: 'Mosaic',           tag: 'fertilizer' },
+  { sym: 'NTR',    name: 'Nutrien',          tag: 'fertilizer' },
+  { sym: 'CCJ',    name: 'Cameco',           tag: 'uranium' },
+  { sym: 'UEC',    name: 'Uranium Energy',   tag: 'uranium' },
+  { sym: 'NXE',    name: 'NexGen Energy',    tag: 'uranium' },
+  { sym: 'CRWD',   name: 'CrowdStrike',      tag: 'cyber' },
+  { sym: 'PANW',   name: 'Palo Alto',        tag: 'cyber' },
+  { sym: 'FTNT',   name: 'Fortinet',         tag: 'cyber' },
+  { sym: 'ADM',    name: 'Archer-Daniels',   tag: 'agriculture' },
+  { sym: 'BG',     name: 'Bunge Global',     tag: 'agriculture' },
+  { sym: 'FCX',    name: 'Freeport-McMoRan', tag: 'commodities' },
+  { sym: 'RIO',    name: 'Rio Tinto',        tag: 'commodities' },
+  { sym: 'RNR',    name: 'RenaissanceRe',    tag: 'insurance' },
+  { sym: 'MKL',    name: 'Markel Group',     tag: 'insurance' },
+];
 
-const SCAN_UNIVERSE = Object.keys(WAR_TAGS);
+async function fetchOne(sym) {
+  const enc = encodeURIComponent(sym);
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${enc}?interval=1d&range=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${enc}?interval=1d&range=1d`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Referer': 'https://finance.yahoo.com',
+        },
+        signal: AbortSignal.timeout(7000),
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const meta = d?.chart?.result?.[0]?.meta;
+      if (!meta?.regularMarketPrice) continue;
+      const price = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
+      const chgPct = prev ? ((price - prev) / prev * 100) : (meta.regularMarketChangePercent || 0);
+      return { price, chgPct, currency: meta.currency };
+    } catch {}
+  }
+  return null;
+}
 
-// Also always include these exchanges for bulk scan
-const BULK_EXCHANGES = ['NYSE', 'NASDAQ'];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
-  if (!FMP_KEY) return res.status(500).json({ error: 'FMP_API_KEY not configured' });
-
   try {
-    // Fetch bulk quotes for our war universe in one call
-    const tickers = SCAN_UNIVERSE.join(',');
-    const url = `https://financialmodelingprep.com/api/v3/quote/${tickers}?apikey=${FMP_KEY}`;
+    const BATCH_SIZE = 10;
+    const results = [];
 
-    const r = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000),
-    });
+    for (let i = 0; i < WAR_UNIVERSE.length; i += BATCH_SIZE) {
+      const batch = WAR_UNIVERSE.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          const q = await fetchOne(item.sym);
+          if (!q) return null;
+          return {
+            symbol: item.sym,
+            name: item.name,
+            tag: item.tag,
+            price: parseFloat(q.price.toFixed(2)),
+            currency: q.currency || 'USD',
+            changePct: parseFloat(q.chgPct.toFixed(2)),
+          };
+        })
+      );
+      results.push(...batchResults);
+      if (i + BATCH_SIZE < WAR_UNIVERSE.length) await sleep(250);
+    }
 
-    if (!r.ok) throw new Error(`FMP error ${r.status}`);
-    const data = await r.json();
+    const valid = results.filter(Boolean);
+    const sorted = [...valid].sort((a, b) => b.changePct - a.changePct);
 
-    if (!Array.isArray(data)) throw new Error('Unexpected FMP response');
-
-    // Enrich with war tags and sort by % change
-    const enriched = data
-      .filter(q => q.price && q.changesPercentage != null)
-      .map(q => ({
-        symbol: q.symbol,
-        name: q.name,
-        price: q.price,
-        change: q.change,
-        changePct: parseFloat(q.changesPercentage.toFixed(2)),
-        volume: q.volume,
-        avgVolume: q.avgVolume,
-        marketCap: q.marketCap,
-        tag: WAR_TAGS[q.symbol] || 'other',
-        volumeSpike: q.avgVolume > 0 ? parseFloat((q.volume / q.avgVolume).toFixed(2)) : 1,
-      }))
-      .sort((a, b) => b.changePct - a.changePct);
-
-    // Top movers per category
     const byTag = {};
-    for (const item of enriched) {
+    for (const item of valid) {
       if (!byTag[item.tag]) byTag[item.tag] = [];
       byTag[item.tag].push(item);
+    }
+    for (const tag of Object.keys(byTag)) {
+      byTag[tag].sort((a, b) => b.changePct - a.changePct);
     }
 
     return res.status(200).json({
       timestamp: new Date().toISOString(),
-      topGainers: enriched.slice(0, 10),
-      topLosers: [...enriched].sort((a, b) => a.changePct - b.changePct).slice(0, 5),
+      topGainers: sorted.slice(0, 10),
+      topLosers: [...sorted].reverse().slice(0, 5),
       byTag,
-      all: enriched,
+      all: sorted,
+      fetched: valid.length,
+      total: WAR_UNIVERSE.length,
     });
 
   } catch (err) {
-    return res.status(502).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
