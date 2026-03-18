@@ -1,50 +1,140 @@
-// /api/scan.js
-// War thesis universe scanner — Yahoo Finance, same source as quote.js
+// /api/scan.js — Full market scanner, 150+ tickers across all sectors
+// Yahoo Finance, same proxy as quote.js
 
-const WAR_UNIVERSE = [
-  { sym: 'SHEL',   name: 'Shell',            tag: 'oil' },
-  { sym: 'XOM',    name: 'ExxonMobil',       tag: 'oil' },
-  { sym: 'CVX',    name: 'Chevron',          tag: 'oil' },
-  { sym: 'COP',    name: 'ConocoPhillips',   tag: 'oil' },
-  { sym: 'OXY',    name: 'Occidental',       tag: 'oil' },
-  { sym: 'HAL',    name: 'Halliburton',      tag: 'oil' },
-  { sym: 'SLB',    name: 'SLB',              tag: 'oil' },
-  { sym: 'FRO',    name: 'Frontline',        tag: 'tanker' },
-  { sym: 'STNG',   name: 'Scorpio Tankers',  tag: 'tanker' },
-  { sym: 'DHT',    name: 'DHT Holdings',     tag: 'tanker' },
-  { sym: 'TNK',    name: 'Teekay Tankers',   tag: 'tanker' },
-  { sym: 'INSW',   name: 'Intl Seaways',     tag: 'tanker' },
-  { sym: 'ZIM',    name: 'ZIM Integrated',   tag: 'shipping' },
-  { sym: 'SBLK',   name: 'Star Bulk',        tag: 'shipping' },
-  { sym: 'RTX',    name: 'Raytheon',         tag: 'defense-us' },
-  { sym: 'LMT',    name: 'Lockheed Martin',  tag: 'defense-us' },
-  { sym: 'NOC',    name: 'Northrop Grumman', tag: 'defense-us' },
-  { sym: 'GD',     name: 'General Dynamics', tag: 'defense-us' },
-  { sym: 'KTOS',   name: 'Kratos Defense',   tag: 'defense-us' },
-  { sym: 'RHM.DE', name: 'Rheinmetall',      tag: 'defense-eu' },
-  { sym: 'BA.L',   name: 'BAE Systems',      tag: 'defense-eu' },
-  { sym: 'HO.PA',  name: 'Thales',           tag: 'defense-eu' },
-  { sym: 'LDO.MI', name: 'Leonardo',         tag: 'defense-eu' },
-  { sym: 'GOLD',   name: 'Barrick Gold',     tag: 'gold' },
-  { sym: 'NEM',    name: 'Newmont',          tag: 'gold' },
-  { sym: 'WPM',    name: 'Wheaton Precious', tag: 'gold' },
-  { sym: 'FNV',    name: 'Franco-Nevada',    tag: 'gold' },
-  { sym: 'AEM',    name: 'Agnico Eagle',     tag: 'gold' },
-  { sym: 'CF',     name: 'CF Industries',    tag: 'fertilizer' },
-  { sym: 'MOS',    name: 'Mosaic',           tag: 'fertilizer' },
-  { sym: 'NTR',    name: 'Nutrien',          tag: 'fertilizer' },
-  { sym: 'CCJ',    name: 'Cameco',           tag: 'uranium' },
-  { sym: 'UEC',    name: 'Uranium Energy',   tag: 'uranium' },
-  { sym: 'NXE',    name: 'NexGen Energy',    tag: 'uranium' },
-  { sym: 'CRWD',   name: 'CrowdStrike',      tag: 'cyber' },
-  { sym: 'PANW',   name: 'Palo Alto',        tag: 'cyber' },
-  { sym: 'FTNT',   name: 'Fortinet',         tag: 'cyber' },
-  { sym: 'ADM',    name: 'Archer-Daniels',   tag: 'agriculture' },
-  { sym: 'BG',     name: 'Bunge Global',     tag: 'agriculture' },
-  { sym: 'FCX',    name: 'Freeport-McMoRan', tag: 'commodities' },
-  { sym: 'RIO',    name: 'Rio Tinto',        tag: 'commodities' },
-  { sym: 'RNR',    name: 'RenaissanceRe',    tag: 'insurance' },
-  { sym: 'MKL',    name: 'Markel Group',     tag: 'insurance' },
+const UNIVERSE = [
+  // ── OIL & GAS ──
+  { sym: 'XOM',   name: 'ExxonMobil',        tag: 'oil' },
+  { sym: 'CVX',   name: 'Chevron',            tag: 'oil' },
+  { sym: 'SHEL',  name: 'Shell',              tag: 'oil' },
+  { sym: 'COP',   name: 'ConocoPhillips',     tag: 'oil' },
+  { sym: 'OXY',   name: 'Occidental',         tag: 'oil' },
+  { sym: 'HAL',   name: 'Halliburton',        tag: 'oil' },
+  { sym: 'SLB',   name: 'SLB',                tag: 'oil' },
+  { sym: 'DVN',   name: 'Devon Energy',       tag: 'oil' },
+  { sym: 'MRO',   name: 'Marathon Oil',       tag: 'oil' },
+  { sym: 'PSX',   name: 'Phillips 66',        tag: 'oil' },
+  { sym: 'VLO',   name: 'Valero',             tag: 'oil' },
+  { sym: 'MPC',   name: 'Marathon Petroleum', tag: 'oil' },
+  // ── TANKERS ──
+  { sym: 'FRO',   name: 'Frontline',          tag: 'tanker' },
+  { sym: 'STNG',  name: 'Scorpio Tankers',    tag: 'tanker' },
+  { sym: 'DHT',   name: 'DHT Holdings',       tag: 'tanker' },
+  { sym: 'TNK',   name: 'Teekay Tankers',     tag: 'tanker' },
+  { sym: 'INSW',  name: 'Intl Seaways',       tag: 'tanker' },
+  { sym: 'TK',    name: 'Teekay Corp',        tag: 'tanker' },
+  { sym: 'ZIM',   name: 'ZIM Integrated',     tag: 'shipping' },
+  { sym: 'SBLK',  name: 'Star Bulk',          tag: 'shipping' },
+  { sym: 'GOGL',  name: 'Golden Ocean',       tag: 'shipping' },
+  { sym: 'MATX',  name: 'Matson',             tag: 'shipping' },
+  // ── US DEFENSE ──
+  { sym: 'RTX',   name: 'Raytheon',           tag: 'defense-us' },
+  { sym: 'LMT',   name: 'Lockheed Martin',    tag: 'defense-us' },
+  { sym: 'NOC',   name: 'Northrop Grumman',   tag: 'defense-us' },
+  { sym: 'GD',    name: 'General Dynamics',   tag: 'defense-us' },
+  { sym: 'KTOS',  name: 'Kratos Defense',     tag: 'defense-us' },
+  { sym: 'LDOS',  name: 'Leidos',             tag: 'defense-us' },
+  { sym: 'CACI',  name: 'CACI Intl',          tag: 'defense-us' },
+  { sym: 'AXON',  name: 'Axon Enterprise',    tag: 'defense-us' },
+  { sym: 'HII',   name: 'Huntington Ingalls', tag: 'defense-us' },
+  { sym: 'TDG',   name: 'TransDigm',          tag: 'defense-us' },
+  // ── EU DEFENSE ──
+  { sym: 'RHM.DE',  name: 'Rheinmetall',      tag: 'defense-eu' },
+  { sym: 'BA.L',    name: 'BAE Systems',      tag: 'defense-eu' },
+  { sym: 'HO.PA',   name: 'Thales',           tag: 'defense-eu' },
+  { sym: 'LDO.MI',  name: 'Leonardo',         tag: 'defense-eu' },
+  { sym: 'SAAB-B.ST', name: 'Saab',           tag: 'defense-eu' },
+  { sym: 'AIR.PA',  name: 'Airbus',           tag: 'defense-eu' },
+  // ── GOLD & PRECIOUS METALS ──
+  { sym: 'GOLD',  name: 'Barrick Gold',       tag: 'gold' },
+  { sym: 'NEM',   name: 'Newmont',            tag: 'gold' },
+  { sym: 'WPM',   name: 'Wheaton Precious',   tag: 'gold' },
+  { sym: 'FNV',   name: 'Franco-Nevada',      tag: 'gold' },
+  { sym: 'AEM',   name: 'Agnico Eagle',       tag: 'gold' },
+  { sym: 'KGC',   name: 'Kinross Gold',       tag: 'gold' },
+  { sym: 'AGI',   name: 'Alamos Gold',        tag: 'gold' },
+  { sym: 'OR',    name: 'Osisko Royalties',   tag: 'gold' },
+  // ── FERTILIZERS ──
+  { sym: 'CF',    name: 'CF Industries',      tag: 'fertilizer' },
+  { sym: 'MOS',   name: 'Mosaic',             tag: 'fertilizer' },
+  { sym: 'NTR',   name: 'Nutrien',            tag: 'fertilizer' },
+  { sym: 'IPI',   name: 'Intrepid Potash',    tag: 'fertilizer' },
+  // ── URANIUM ──
+  { sym: 'CCJ',   name: 'Cameco',             tag: 'uranium' },
+  { sym: 'UEC',   name: 'Uranium Energy',     tag: 'uranium' },
+  { sym: 'NXE',   name: 'NexGen Energy',      tag: 'uranium' },
+  { sym: 'DNN',   name: 'Denison Mines',      tag: 'uranium' },
+  { sym: 'UUUU',  name: 'Energy Fuels',       tag: 'uranium' },
+  // ── CYBER SECURITY ──
+  { sym: 'CRWD',  name: 'CrowdStrike',        tag: 'cyber' },
+  { sym: 'PANW',  name: 'Palo Alto',          tag: 'cyber' },
+  { sym: 'FTNT',  name: 'Fortinet',           tag: 'cyber' },
+  { sym: 'S',     name: 'SentinelOne',        tag: 'cyber' },
+  { sym: 'CYBR',  name: 'CyberArk',           tag: 'cyber' },
+  { sym: 'ZS',    name: 'Zscaler',            tag: 'cyber' },
+  // ── AGRICULTURE ──
+  { sym: 'ADM',   name: 'Archer-Daniels',     tag: 'agriculture' },
+  { sym: 'BG',    name: 'Bunge Global',       tag: 'agriculture' },
+  { sym: 'CTVA',  name: 'Corteva',            tag: 'agriculture' },
+  { sym: 'DE',    name: 'Deere & Co',         tag: 'agriculture' },
+  { sym: 'AGCO',  name: 'AGCO Corp',          tag: 'agriculture' },
+  // ── COMMODITIES / MINING ──
+  { sym: 'FCX',   name: 'Freeport-McMoRan',   tag: 'commodities' },
+  { sym: 'RIO',   name: 'Rio Tinto',          tag: 'commodities' },
+  { sym: 'BHP',   name: 'BHP Group',          tag: 'commodities' },
+  { sym: 'AA',    name: 'Alcoa',              tag: 'commodities' },
+  { sym: 'X',     name: 'US Steel',           tag: 'commodities' },
+  { sym: 'CLF',   name: 'Cleveland-Cliffs',   tag: 'commodities' },
+  { sym: 'MP',    name: 'MP Materials',       tag: 'commodities' },
+  // ── WAR RISK INSURANCE ──
+  { sym: 'RNR',   name: 'RenaissanceRe',      tag: 'insurance' },
+  { sym: 'MKL',   name: 'Markel Group',       tag: 'insurance' },
+  { sym: 'AIG',   name: 'AIG',                tag: 'insurance' },
+  { sym: 'TRV',   name: 'Travelers',          tag: 'insurance' },
+  { sym: 'HIG',   name: 'Hartford Financial', tag: 'insurance' },
+  // ── TECH / AI (macro bellwether) ──
+  { sym: 'NVDA',  name: 'Nvidia',             tag: 'tech' },
+  { sym: 'MSFT',  name: 'Microsoft',          tag: 'tech' },
+  { sym: 'AAPL',  name: 'Apple',              tag: 'tech' },
+  { sym: 'GOOGL', name: 'Alphabet',           tag: 'tech' },
+  { sym: 'META',  name: 'Meta',               tag: 'tech' },
+  { sym: 'AMZN',  name: 'Amazon',             tag: 'tech' },
+  { sym: 'TSLA',  name: 'Tesla',              tag: 'tech' },
+  // ── FINANCIALS ──
+  { sym: 'JPM',   name: 'JPMorgan',           tag: 'financials' },
+  { sym: 'BAC',   name: 'Bank of America',    tag: 'financials' },
+  { sym: 'WFC',   name: 'Wells Fargo',        tag: 'financials' },
+  { sym: 'GS',    name: 'Goldman Sachs',      tag: 'financials' },
+  { sym: 'MS',    name: 'Morgan Stanley',     tag: 'financials' },
+  { sym: 'BRK-B', name: 'Berkshire',          tag: 'financials' },
+  { sym: 'BX',    name: 'Blackstone',         tag: 'financials' },
+  // ── CONSUMER / RETAIL ──
+  { sym: 'WMT',   name: 'Walmart',            tag: 'consumer' },
+  { sym: 'COST',  name: 'Costco',             tag: 'consumer' },
+  { sym: 'PG',    name: 'P&G',                tag: 'consumer' },
+  { sym: 'KO',    name: 'Coca-Cola',          tag: 'consumer' },
+  { sym: 'MCD',   name: "McDonald's",         tag: 'consumer' },
+  // ── HEALTHCARE ──
+  { sym: 'JNJ',   name: 'Johnson & Johnson',  tag: 'healthcare' },
+  { sym: 'UNH',   name: 'UnitedHealth',       tag: 'healthcare' },
+  { sym: 'PFE',   name: 'Pfizer',             tag: 'healthcare' },
+  { sym: 'ABBV',  name: 'AbbVie',             tag: 'healthcare' },
+  { sym: 'MRK',   name: 'Merck',              tag: 'healthcare' },
+  // ── AIRLINES (war losers) ──
+  { sym: 'DAL',   name: 'Delta Airlines',     tag: 'airlines' },
+  { sym: 'UAL',   name: 'United Airlines',    tag: 'airlines' },
+  { sym: 'AAL',   name: 'American Airlines',  tag: 'airlines' },
+  { sym: 'LUV',   name: 'Southwest',          tag: 'airlines' },
+  // ── UTILITIES ──
+  { sym: 'NEE',   name: 'NextEra Energy',     tag: 'utilities' },
+  { sym: 'DUK',   name: 'Duke Energy',        tag: 'utilities' },
+  { sym: 'SO',    name: 'Southern Company',   tag: 'utilities' },
+  // ── ETF MACRO SIGNALS ──
+  { sym: 'GLD',   name: 'SPDR Gold ETF',      tag: 'etf' },
+  { sym: 'USO',   name: 'Oil ETF',            tag: 'etf' },
+  { sym: 'XLE',   name: 'Energy Sector ETF',  tag: 'etf' },
+  { sym: 'XLF',   name: 'Financials ETF',     tag: 'etf' },
+  { sym: 'ITA',   name: 'Defense ETF',        tag: 'etf' },
+  { sym: 'COPX',  name: 'Copper Miners ETF',  tag: 'etf' },
 ];
 
 async function fetchOne(sym) {
@@ -81,13 +171,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
 
   try {
     const BATCH_SIZE = 10;
     const results = [];
 
-    for (let i = 0; i < WAR_UNIVERSE.length; i += BATCH_SIZE) {
-      const batch = WAR_UNIVERSE.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < UNIVERSE.length; i += BATCH_SIZE) {
+      const batch = UNIVERSE.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(
         batch.map(async (item) => {
           const q = await fetchOne(item.sym);
@@ -103,7 +194,7 @@ export default async function handler(req, res) {
         })
       );
       results.push(...batchResults);
-      if (i + BATCH_SIZE < WAR_UNIVERSE.length) await sleep(250);
+      if (i + BATCH_SIZE < UNIVERSE.length) await sleep(200);
     }
 
     const valid = results.filter(Boolean);
@@ -118,14 +209,24 @@ export default async function handler(req, res) {
       byTag[tag].sort((a, b) => b.changePct - a.changePct);
     }
 
+    // Sector summary with avg performance
+    const sectorSummary = Object.entries(byTag).map(([tag, items]) => ({
+      tag,
+      avg: parseFloat((items.reduce((s, i) => s + i.changePct, 0) / items.length).toFixed(2)),
+      count: items.length,
+      top: items[0]?.symbol,
+      bottom: items[items.length - 1]?.symbol,
+    })).sort((a, b) => b.avg - a.avg);
+
     return res.status(200).json({
       timestamp: new Date().toISOString(),
       topGainers: sorted.slice(0, 10),
       topLosers: [...sorted].reverse().slice(0, 5),
       byTag,
+      sectorSummary,
       all: sorted,
       fetched: valid.length,
-      total: WAR_UNIVERSE.length,
+      total: UNIVERSE.length,
     });
 
   } catch (err) {
