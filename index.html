@@ -391,20 +391,28 @@ async function loadScanner() {
 }
 
 function renderScanner(data, el) {
-  // Top movers table
+  // Currency symbol helper
+  function cs(currency) {
+    return currency === 'EUR' ? '€' : currency === 'GBp' || currency === 'GBP' ? '£' : '$';
+  }
+  function fmtPrice(s) {
+    const sym = cs(s.currency);
+    const price = s.currency === 'GBp' ? (s.price / 100).toFixed(2) : s.price.toFixed(2);
+    return sym + price;
+  }
+
   let html = '<div class="scanner-grid">';
 
   // Gainers
   html += `<div class="scanner-card">
     <div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
   for (const s of (data.topGainers || []).slice(0, 10)) {
-    const volClass = s.volumeSpike >= 2 ? 'vol-spike' : '';
     html += `<div class="scanner-row">
       <span class="scanner-sym">${s.symbol}</span>
-      <span class="scanner-name">${(s.name || '').slice(0, 22)}</span>
+      <span class="scanner-name">${(s.name || '').slice(0, 20)}</span>
       <span class="scanner-tag">${s.tag}</span>
+      <span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span>
       <span class="scanner-chg up">+${s.changePct}%</span>
-      <span class="scanner-vol ${volClass}" title="Volume spike vs avg">${s.volumeSpike}x</span>
     </div>`;
   }
   html += '</div>';
@@ -415,10 +423,10 @@ function renderScanner(data, el) {
   for (const s of (data.topLosers || []).slice(0, 5)) {
     html += `<div class="scanner-row">
       <span class="scanner-sym">${s.symbol}</span>
-      <span class="scanner-name">${(s.name || '').slice(0, 22)}</span>
+      <span class="scanner-name">${(s.name || '').slice(0, 20)}</span>
       <span class="scanner-tag">${s.tag}</span>
+      <span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span>
       <span class="scanner-chg down">${s.changePct}%</span>
-      <span class="scanner-vol">${s.volumeSpike}x</span>
     </div>`;
   }
   html += '</div></div>';
@@ -441,7 +449,7 @@ function renderScanner(data, el) {
   html += '</div>';
 
   const ts = new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${(data.all || []).length} tickers · via FMP</p>`;
+  html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${data.fetched || (data.all || []).length}/${data.total || 43} tickers · via Yahoo Finance</p>`;
   el.innerHTML = html;
 }
 
