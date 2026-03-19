@@ -11,15 +11,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
 .header h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: #ccc; }
 .ts { font-size: 11px; color: #555; }
-
-/* Tabs */
 .tabs { display: flex; gap: 4px; margin-bottom: 1.2rem; border-bottom: 0.5px solid #2a2a2a; }
 .tab { font-size: 11px; padding: 6px 16px; border-radius: 8px 8px 0 0; border: 0.5px solid transparent; background: transparent; color: #555; cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; transition: all 0.15s; }
 .tab:hover { color: #aaa; }
 .tab.active { background: #1a1a1a; border-color: #2a2a2a; border-bottom-color: #111; color: #fff; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
-
 .section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; display: flex; align-items: center; justify-content: space-between; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; }
@@ -32,42 +29,42 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .badge-hold { background: #0d2a45; color: #4a9eff; }
 .badge-watch { background: #2d1f00; color: #d4900a; }
 .badge-buy { background: #0a2518; color: #2ecc71; }
-.badge-tag { background: #1e1e1e; color: #777; font-size: 8px; padding: 2px 5px; border-radius: 3px; border: 0.5px solid #333; }
 .up { color: #2ecc71; } .down { color: #e74c3c; }
-
 .macro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .macro-card { background: #1a1a1a; border-radius: 10px; padding: 0.8rem 1rem; border: 0.5px solid #2a2a2a; }
 .macro-label { font-size: 10px; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
 .macro-val { font-size: 18px; font-weight: 500; color: #fff; }
 .macro-sub { font-size: 11px; margin-top: 3px; }
-
 .portfolio-bar { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 1.1rem 1.4rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .total-val { font-size: 28px; font-weight: 500; color: #fff; letter-spacing: -1px; }
 .total-label { font-size: 11px; color: #555; margin-bottom: 5px; }
 .pnl-line { font-size: 12px; margin-top: 4px; }
-
 .refresh-btn { font-size: 12px; padding: 7px 16px; border-radius: 8px; border: 0.5px solid #333; background: transparent; color: #888; cursor: pointer; }
 .refresh-btn:hover { background: #222; color: #ccc; }
 .icon-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 0.5px solid #333; background: transparent; color: #666; cursor: pointer; }
 .icon-btn:hover { background: #222; color: #aaa; }
-
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
 .dot-live { background: #2ecc71; animation: pulse 2s infinite; }
 .dot-loading { background: #f39c12; }
 .dot-error { background: #e74c3c; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
 .war-bar { background: #1e0a0a; border: 0.5px solid #3d1515; border-radius: 8px; padding: 0.55rem 1rem; font-size: 11px; color: #e74c3c; margin-bottom: 1rem; }
-
-/* Master brief button */
-.brief-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; padding: 13px 18px; border-radius: 10px; border: 0.5px solid #2ecc71; background: #0a2518; color: #2ecc71; cursor: pointer; margin-bottom: 1rem; transition: all 0.15s; }
+.brief-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; padding: 13px 18px; border-radius: 10px; border: 0.5px solid #2ecc71; background: #0a2518; color: #2ecc71; cursor: pointer; margin-bottom: 0.6rem; transition: all 0.15s; }
 .brief-btn:hover { background: #0d3020; }
+.brief-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .brief-btn .brief-meta { font-size: 10px; color: #555; font-weight: 400; margin-left: auto; }
-
+#briefOutput { display: none; background: #0d1f14; border: 0.5px solid #1a4028; border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1rem; font-size: 12.5px; line-height: 1.7; color: #d4f0e0; position: relative; }
+#briefOutput.visible { display: block; }
+.brief-header { font-size: 10px; font-weight: 700; color: #2ecc71; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between; }
+.brief-close { background: transparent; border: 0.5px solid #1a4028; color: #555; border-radius: 5px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
+.brief-close:hover { color: #e74c3c; border-color: #e74c3c; }
+#briefText { white-space: pre-wrap; word-break: break-word; }
+#briefText .section-h { color: #fff; font-weight: 700; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; display: block; margin-top: 1rem; margin-bottom: 0.3rem; border-bottom: 0.5px solid #1a4028; padding-bottom: 3px; }
+#briefText strong { color: #2ecc71; }
+.brief-cursor { display: inline-block; width: 7px; height: 13px; background: #2ecc71; animation: blink 0.8s steps(1) infinite; vertical-align: middle; margin-left: 2px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
 .ask-btn:hover { background: #1a1a1a; color: #ccc; }
-
-/* Scanner */
 .scanner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .scanner-grid { grid-template-columns: 1fr; } }
 .scanner-card { background: #1a1a1a; border-radius: 10px; border: 0.5px solid #2a2a2a; overflow: hidden; }
@@ -79,10 +76,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .scanner-tag { font-size: 8px; color: #666; background: #1e1e1e; border: 0.5px solid #2a2a2a; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
 .scanner-chg { font-size: 13px; font-weight: 600; min-width: 54px; text-align: right; }
 .scanner-vol { font-size: 10px; color: #555; min-width: 40px; text-align: right; }
-.scanner-status { font-size: 11px; color: #444; padding: 20px 14px; text-align: center; }
-.vol-spike { color: #f39c12; }
-
-/* Sector bars */
 .sector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 0.6rem; }
 .sector-bar-card { background: #1a1a1a; border-radius: 8px; border: 0.5px solid #2a2a2a; padding: 10px 12px; }
 .sector-name { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
@@ -90,8 +83,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sector-tickers { font-size: 9px; color: #444; margin-top: 3px; }
 .sector-bar-bg { height: 3px; background: #222; border-radius: 2px; margin-top: 6px; overflow: hidden; }
 .sector-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-
-/* News feed */
 .news-list { display: flex; flex-direction: column; gap: 6px; }
 .news-item { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 8px; padding: 10px 13px; display: flex; gap: 10px; align-items: flex-start; }
 .news-tag-pill { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
@@ -104,8 +95,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .news-content { flex: 1; }
 .news-title { font-size: 12px; color: #ddd; line-height: 1.4; }
 .news-meta { font-size: 10px; color: #444; margin-top: 3px; }
-
-/* Edit panel */
 .edit-panel { background: #1a1a1a; border: 0.5px solid #3a3a3a; border-radius: 10px; padding: 1rem 1.2rem; margin-top: 0.5rem; display: none; }
 .edit-panel.open { display: block; }
 .edit-panel h3 { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.8rem; }
@@ -119,7 +108,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .save-btn { font-size: 11px; padding: 5px 14px; border-radius: 6px; border: none; background: #2ecc71; color: #000; cursor: pointer; font-weight: 600; margin-left: 8px; }
 .col-head { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
 .note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
-
 .spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid #333; border-top-color: #2ecc71; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -149,22 +137,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- MASTER BRIEF BUTTON -->
   <button class="brief-btn" id="briefBtn" onclick="openMasterBrief()">
     <span id="briefSpinner" style="display:none;"><span class="spinner"></span></span>
     ⚡ BRIEF CLAUDE — Full Market Intelligence
-    <span class="brief-meta" id="briefMeta">scanner + news + positions → Claude</span>
+    <span class="brief-meta" id="briefMeta">scanner + news + positions → inline analysis</span>
   </button>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('portfolio')">Portfolio</button>
-    <button class="tab" onclick="switchTab('scanner')">🔍 Market Scanner</button>
-    <button class="tab" onclick="switchTab('news')">📰 News Feed</button>
-    <button class="tab" onclick="switchTab('analysis')">Quick Analysis</button>
+  <div id="briefOutput">
+    <div class="brief-header">
+      <span>⚡ WAR PORTFOLIO BRIEF — <span id="briefTimestamp"></span></span>
+      <button class="brief-close" onclick="closeBrief()">✕ Close</button>
+    </div>
+    <div id="briefText"></div>
   </div>
 
-  <!-- TAB: PORTFOLIO -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('portfolio', event)">Portfolio</button>
+    <button class="tab" onclick="switchTab('scanner', event)">🔍 Market Scanner</button>
+    <button class="tab" onclick="switchTab('news', event)">📰 News Feed</button>
+    <button class="tab" onclick="switchTab('analysis', event)">Quick Analysis</button>
+  </div>
+
   <div class="tab-panel active" id="tab-portfolio">
     <div class="section-label">
       <span>Your positions</span>
@@ -180,12 +173,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <button class="add-row-btn" onclick="addEditRow()">+ Add position</button>
         <button class="save-btn" onclick="savePositions()">Save & Refresh</button>
       </div>
-      <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · GLDA.L · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD</p>
+      <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · STNG · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD · KTOS · HAL</p>
     </div>
     <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
 
     <div class="section-label">
-      <span>Watchlist &middot; War thesis plays</span>
+      <span>Watchlist · War thesis plays</span>
       <button class="icon-btn" onclick="toggleWatchAdd()" id="watchAddBtn">+ Watch</button>
     </div>
     <div id="watchAddForm" style="display:none;background:#1a1a1a;border:0.5px solid #2ecc71;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
@@ -211,40 +204,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- TAB: SCANNER -->
   <div class="tab-panel" id="tab-scanner">
     <div class="section-label">
       <span>War thesis universe — live scan</span>
       <button class="icon-btn" onclick="loadScanner()">↻ Refresh scan</button>
     </div>
-    <div id="scannerContent">
-      <div style="font-size:11px;color:#444;padding:8px;">Click Refresh scan or switch to this tab to load...</div>
-    </div>
+    <div id="scannerContent"><div style="font-size:11px;color:#444;padding:8px;">Click Refresh scan or switch to this tab to load...</div></div>
   </div>
 
-  <!-- TAB: NEWS -->
   <div class="tab-panel" id="tab-news">
     <div class="section-label">
       <span>Live macro headlines</span>
       <button class="icon-btn" onclick="loadNews()">↻ Refresh</button>
     </div>
-    <div id="newsContent">
-      <div style="font-size:11px;color:#444;padding:8px;">Click Refresh or switch to this tab to load...</div>
-    </div>
+    <div id="newsContent"><div style="font-size:11px;color:#444;padding:8px;">Click Refresh or switch to this tab to load...</div></div>
   </div>
 
-  <!-- TAB: QUICK ANALYSIS -->
   <div class="tab-panel" id="tab-analysis">
     <div class="section-label">Quick analysis → Claude</div>
-    <button class="ask-btn" onclick="openClaude('Given today news on Day 18 of the US-Iran war, what is the single best trade I can make with my uninvested cash right now? Be blunt.')">💰 Best trade for my uninvested cash right now ↗</button>
-    <button class="ask-btn" onclick="openClaude('Should I buy RHM today at current price? Give me a blunt yes or no with one paragraph reason.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
-    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I might be missing beyond RHM given EU rearmament and US-Iran war escalation Day 18.')">🔍 Scan defense sector for plays I am missing ↗</button>
-    <button class="ask-btn" onclick="openClaude('What does current oil price mean for my GLDA position? Should I add more or hold?')">📊 Oil + GLDA thesis check ↗</button>
-    <button class="ask-btn" onclick="openClaude('What are the top 3 risks to my war portfolio right now and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
-    <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position or noise? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
+    <button class="ask-btn" onclick="openClaude('Day 18 US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD) and STNG Scorpio Tankers (2.088 shares, BUY thesis: Hormuz tanker play). I have $700 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.')">💰 Best trade for my $700 uninvested cash right now ↗</button>
+    <button class="ask-btn" onclick="openClaude('Should I buy RHM (Rheinmetall) today? I already hold STNG (tanker play) and BRK-B (defensive anchor). Give me a blunt yes or no + one paragraph reason + price target.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
+    <button class="ask-btn" onclick="openClaude('I hold STNG (Scorpio Tankers, 2.088 shares). Hormuz is closed Day 18 of US-Iran war. Tanker rates surging. What is the next price target for STNG? Should I add or hold? Be specific.')">🚢 STNG thesis check — add or hold? ↗</button>
+    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day 18. I have $700 to deploy. What is the highest asymmetry play right now?')">🔍 Defense sector — what am I missing? ↗</button>
+    <button class="ask-btn" onclick="openClaude('Top 3 risks to my war portfolio right now: BRK-B + STNG + $700 uninvested. What can blow up my thesis and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
+    <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
   </div>
 
-  <p class="note">Live data: Yahoo Finance (positions/macro/scanner) · RSS feeds — Reuters, BBC, CNBC, Al Jazeera (real-time, no delay) · war-portfolio-api.vercel.app</p>
+  <p class="note">Live data: Yahoo Finance · RSS feeds: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app · Brief: claude-sonnet-4-6 (Druckenmiller persona)</p>
 </div>
 
 <script>
@@ -252,33 +238,47 @@ const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
 
+// ── POSITIONS: BRK-B + STNG ─────────────────────────────────────────────────
 const DEFAULT_POSITIONS = [
-  { sym: 'BRK-B', display: 'BRK.B', name: 'Berkshire Hathaway', shares: 0.6, avgCost: 492.15, badge: 'hold', thesis: 'Defensive anchor · Buffett $300B cash' },
-  { sym: 'GLDA.L', display: 'GLDA', name: 'Amundi Physical Gold ETC', shares: 0.75, avgCost: 17239, badge: 'hold', thesis: 'Stagflation hedge · War + Hormuz bullish', gbp: true },
+  {
+    sym: 'BRK-B',
+    display: 'BRK.B',
+    name: 'Berkshire Hathaway',
+    shares: 0.6065,
+    avgCost: 492.15,
+    badge: 'hold',
+    thesis: 'Defensive anchor · Buffett $300B cash · stagflation shelter'
+  },
+  {
+    sym: 'STNG',
+    display: 'STNG',
+    name: 'Scorpio Tankers',
+    shares: 2.088,
+    avgCost: 69.50,
+    badge: 'buy',
+    thesis: 'Hormuz tanker play · product tanker rate surge on Strait rerouting'
+  },
 ];
 
 const DEFAULT_WATCHLIST = [
-  { sym: 'RHM.DE', display: 'RHM', name: 'Rheinmetall AG', badge: 'buy', thesis: 'EU rearmament · Target €2,114 · Earnings May 7' },
-  { sym: 'HO.PA', display: 'Thales', name: 'Thales SA', badge: 'watch', thesis: 'EU defense · Radar + C2 systems' },
-  { sym: 'BA.L', display: 'BAE Sys', name: 'BAE Systems', badge: 'watch', thesis: 'UK defense · F-35 + naval' },
-  { sym: 'LDO.MI', display: 'Leonardo', name: 'Leonardo SpA', badge: 'watch', thesis: 'Italian defense + aerospace' },
-  { sym: 'SHEL', display: 'Shell', name: 'Shell PLC', badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend' },
-  { sym: 'FRO', display: 'Frontline', name: 'Frontline Ltd', badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck' },
-  { sym: 'GOLD', display: 'Barrick', name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play' },
-  { sym: 'NEM', display: 'Newmont', name: 'Newmont Corp', badge: 'watch', thesis: 'Gold miner diversifier' },
+  { sym: 'RHM.DE',  display: 'RHM',      name: 'Rheinmetall AG',    badge: 'buy',   thesis: 'EU rearmament · Target €2,114 · Earnings May 7', custom: false },
+  { sym: 'HO.PA',   display: 'Thales',   name: 'Thales SA',         badge: 'watch', thesis: 'EU defense · Radar + C2 systems', custom: false },
+  { sym: 'BA.L',    display: 'BAE Sys',  name: 'BAE Systems',       badge: 'watch', thesis: 'UK defense · F-35 + naval', custom: false },
+  { sym: 'LDO.MI',  display: 'Leonardo', name: 'Leonardo SpA',      badge: 'watch', thesis: 'Italian defense + aerospace', custom: false },
+  { sym: 'SHEL',    display: 'Shell',    name: 'Shell PLC',         badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend', custom: false },
+  { sym: 'FRO',     display: 'Frontline',name: 'Frontline Ltd',     badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck', custom: false },
+  { sym: 'HAL',     display: 'HAL',      name: 'Halliburton',       badge: 'buy',   thesis: 'Oil services · drills harder when supply disrupted', custom: false },
+  { sym: 'MOS',     display: 'MOS',      name: 'Mosaic Co',         badge: 'watch', thesis: 'Fertilizer · Iran food crisis + ag miner', custom: false },
+  { sym: 'KTOS',    display: 'KTOS',     name: 'Kratos Defense',    badge: 'watch', thesis: 'US drones · MQ-9 losses = replacement demand', custom: false },
+  { sym: 'GOLD',    display: 'Barrick',  name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play', custom: false },
+  { sym: 'NEM',     display: 'Newmont',  name: 'Newmont Corp',      badge: 'watch', thesis: 'Gold miner diversifier', custom: false },
 ];
 
 function loadWatchlistItems() {
-  try {
-    const s = localStorage.getItem('warWatchlist');
-    return s ? JSON.parse(s) : DEFAULT_WATCHLIST;
-  } catch { return DEFAULT_WATCHLIST; }
+  try { const s = localStorage.getItem('warWatchlist'); return s ? JSON.parse(s) : DEFAULT_WATCHLIST; } catch { return DEFAULT_WATCHLIST; }
 }
-function saveWatchlistItems(items) {
-  localStorage.setItem('warWatchlist', JSON.stringify(items));
-}
+function saveWatchlistItems(items) { localStorage.setItem('warWatchlist', JSON.stringify(items)); }
 
-// Quick add form
 function toggleWatchAdd() {
   const form = document.getElementById('watchAddForm');
   const isOpen = form.style.display !== 'none';
@@ -296,41 +296,23 @@ async function addToWatchlist() {
   const note = document.getElementById('w-note').value.trim();
   const status = document.getElementById('w-status');
   if (!symRaw) { status.textContent = 'Enter a ticker symbol'; status.style.color = '#e74c3c'; return; }
-
   status.textContent = 'Fetching price...'; status.style.color = '#555';
-
   try {
     const r = await fetch(PROXY + '?symbol=' + encodeURIComponent(symRaw));
     const q = await r.json();
     if (q.error) throw new Error('Ticker not found');
-
     const items = loadWatchlistItems();
-    if (items.find(i => i.sym.toUpperCase() === symRaw)) {
-      status.textContent = symRaw + ' already in watchlist'; status.style.color = '#f39c12'; return;
-    }
-
+    if (items.find(i => i.sym.toUpperCase() === symRaw)) { status.textContent = symRaw + ' already in watchlist'; status.style.color = '#f39c12'; return; }
     const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
     const cs = q.currency === 'GBp' ? '£' : (q.currency === 'EUR' ? '€' : '$');
     const display = symRaw.split('.')[0];
-
-    items.push({
-      sym: symRaw,
-      display,
-      name: display,
-      badge: 'watch',
-      thesis: note || 'Added to watchlist',
-      custom: true,
-    });
+    items.push({ sym: symRaw, display, name: display, badge: 'watch', thesis: note || 'Added to watchlist', custom: true });
     saveWatchlistItems(items);
-
     status.textContent = '✓ Added ' + symRaw + ' at ' + cs + priceAdj.toFixed(2);
     status.style.color = '#2ecc71';
     document.getElementById('w-sym').value = '';
     document.getElementById('w-note').value = '';
-
-    // Reload watchlist
     await loadWatchlist();
-    // Close form after 1.5s
     setTimeout(() => { document.getElementById('watchAddForm').style.display = 'none'; }, 1500);
   } catch(e) {
     status.textContent = 'Could not find ticker: ' + symRaw;
@@ -345,25 +327,23 @@ function removeFromWatchlist(sym) {
 }
 
 const MACRO = [
-  { sym: 'BZ=F', id: 'm-oil', sid: 'm-oil-s', prefix: '$', dec: 2 },
-  { sym: 'GC=F', id: 'm-gold', sid: 'm-gold-s', prefix: '$', dec: 0 },
-  { sym: 'EURUSD=X', id: 'm-eur', sid: 'm-eur-s', prefix: '', dec: 4 },
-  { sym: '^VIX', id: 'm-vix', sid: 'm-vix-s', prefix: '', dec: 1 },
-  { sym: 'SPY', id: 'm-spy', sid: 'm-spy-s', prefix: '$', dec: 2 },
-  { sym: '^GDAXI', id: 'm-dax', sid: 'm-dax-s', prefix: '', dec: 0 },
+  { sym: 'BZ=F',     id: 'm-oil',  sid: 'm-oil-s',  prefix: '$', dec: 2 },
+  { sym: 'GC=F',     id: 'm-gold', sid: 'm-gold-s', prefix: '$', dec: 0 },
+  { sym: 'EURUSD=X', id: 'm-eur',  sid: 'm-eur-s',  prefix: '',  dec: 4 },
+  { sym: '^VIX',     id: 'm-vix',  sid: 'm-vix-s',  prefix: '',  dec: 1 },
+  { sym: 'SPY',      id: 'm-spy',  sid: 'm-spy-s',  prefix: '$', dec: 2 },
+  { sym: '^GDAXI',   id: 'm-dax',  sid: 'm-dax-s',  prefix: '',  dec: 0 },
 ];
 
-// Tab switching
-function switchTab(name) {
+function switchTab(name, e) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'scanner') loadScanner();
   if (name === 'news') loadNews();
 }
 
-// Storage
 function loadSavedPositions() {
   try { const s = localStorage.getItem('warPositions'); return s ? JSON.parse(s) : DEFAULT_POSITIONS; } catch { return DEFAULT_POSITIONS; }
 }
@@ -374,8 +354,7 @@ async function getQuote(sym) {
   if (!r.ok) throw new Error('proxy error');
   return r.json();
 }
-
-function currSym(c) { return c === 'EUR' ? '€' : c === 'GBP' || c === 'GBp' ? '£' : '$'; }
+function currSym(c) { return c === 'EUR' ? '€' : (c === 'GBP' || c === 'GBp') ? '£' : '$'; }
 function chgHtml(pct) {
   if (pct == null) return '<span style="color:#555">—</span>';
   const s = pct >= 0 ? '+' : '';
@@ -384,7 +363,6 @@ function chgHtml(pct) {
 function badgeCls(b) { return b === 'hold' ? 'badge-hold' : b === 'buy' ? 'badge-buy' : 'badge-watch'; }
 function badgeLbl(b) { return b === 'hold' ? 'HOLD' : b === 'buy' ? 'BUY' : 'WATCH'; }
 
-// Stored position data for brief
 let _positionData = [];
 
 async function loadPositions() {
@@ -404,7 +382,13 @@ async function loadPositions() {
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
       const displayPrice = priceAdj.toFixed(2);
       totalVal += posVal; totalCost += cost; hasData = true;
-      _positionData.push({ ...p, currentPrice: cs + displayPrice, pnl: sign + pnlPct.toFixed(2) + '%' });
+      _positionData.push({
+        ...p,
+        currentPrice: cs + displayPrice,
+        pnlPct: sign + pnlPct.toFixed(2) + '%',
+        posVal: posVal.toFixed(2),
+        todayChg: q.chgPct != null ? (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + '%' : '—'
+      });
       html += `<div class="card">
         <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
         <div class="card-ticker">${p.display}</div>
@@ -414,7 +398,7 @@ async function loadPositions() {
         <div class="card-sub">${p.shares} shares · ${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
       </div>`;
     } catch {
-      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display || p.sym}</div><div class="card-name">${p.name || ''}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis || ''}</div></div>`;
+      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display||p.sym}</div><div class="card-name">${p.name||''}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis||''}</div></div>`;
     }
   }
   document.getElementById('posGrid').innerHTML = html;
@@ -435,23 +419,11 @@ async function loadWatchlist() {
       const q = await getQuote(w.sym);
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
-      const removeBtn = w.custom !== false
-        ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>`
-        : '';
-      html += `<div class="card" style="position:relative;">
-        <span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span>
-        <div class="card-ticker">${w.display}</div>
-        <div class="card-name">${w.name}</div>
-        <div class="card-price">${cs}${priceAdj.toFixed(2)}</div>
-        <div class="card-change">${chgHtml(q.chgPct)}</div>
-        <div class="card-sub" style="padding-right:${w.custom !== false ? '14px' : '0'}">${w.thesis}</div>
-        ${removeBtn}
-      </div>`;
+      const rb = w.custom ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
+      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price">${cs}${priceAdj.toFixed(2)}</div><div class="card-change">${chgHtml(q.chgPct)}</div><div class="card-sub" style="padding-right:${w.custom?'14px':'0'}">${w.thesis}</div>${rb}</div>`;
     } catch {
-      const removeBtn = w.custom !== false
-        ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>`
-        : '';
-      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div>${removeBtn}</div>`;
+      const rb = w.custom ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
+      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div>${rb}</div>`;
     }
   }
   document.getElementById('watchGrid').innerHTML = html;
@@ -471,10 +443,9 @@ async function loadMacro() {
   }
 }
 
-// SCANNER
 async function loadScanner() {
   const el = document.getElementById('scannerContent');
-  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning 115 tickers across all sectors...</div>';
+  el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning war universe tickers...</div>';
   try {
     const r = await fetch(SCAN_API);
     if (!r.ok) throw new Error('Scan API error ' + r.status);
@@ -487,69 +458,30 @@ async function loadScanner() {
 }
 
 function renderScanner(data, el) {
-  // Currency symbol helper
-  function cs(currency) {
-    return currency === 'EUR' ? '€' : currency === 'GBp' || currency === 'GBP' ? '£' : '$';
-  }
-  function fmtPrice(s) {
-    const sym = cs(s.currency);
-    const price = s.currency === 'GBp' ? (s.price / 100).toFixed(2) : s.price.toFixed(2);
-    return sym + price;
-  }
-
+  function cs(c) { return c === 'EUR' ? '€' : (c === 'GBp' || c === 'GBP') ? '£' : '$'; }
+  function fmtPrice(s) { return cs(s.currency) + (s.currency === 'GBp' ? (s.price/100).toFixed(2) : s.price.toFixed(2)); }
   let html = '<div class="scanner-grid">';
-
-  // Gainers
-  html += `<div class="scanner-card">
-    <div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
-  for (const s of (data.topGainers || []).slice(0, 10)) {
-    html += `<div class="scanner-row">
-      <span class="scanner-sym">${s.symbol}</span>
-      <span class="scanner-name">${(s.name || '').slice(0, 20)}</span>
-      <span class="scanner-tag">${s.tag}</span>
-      <span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span>
-      <span class="scanner-chg up">+${s.changePct}%</span>
-    </div>`;
-  }
+  html += `<div class="scanner-card"><div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
+  for (const s of (data.topGainers||[]).slice(0,10))
+    html += `<div class="scanner-row"><span class="scanner-sym">${s.symbol}</span><span class="scanner-name">${(s.name||'').slice(0,20)}</span><span class="scanner-tag">${s.tag}</span><span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg up">+${s.changePct}%</span></div>`;
   html += '</div>';
-
-  // Losers
-  html += `<div class="scanner-card">
-    <div class="scanner-card-header">🔴 Top Losers — War Universe</div>`;
-  for (const s of (data.topLosers || []).slice(0, 5)) {
-    html += `<div class="scanner-row">
-      <span class="scanner-sym">${s.symbol}</span>
-      <span class="scanner-name">${(s.name || '').slice(0, 20)}</span>
-      <span class="scanner-tag">${s.tag}</span>
-      <span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span>
-      <span class="scanner-chg down">${s.changePct}%</span>
-    </div>`;
-  }
+  html += `<div class="scanner-card"><div class="scanner-card-header">🔴 Top Losers — War Universe</div>`;
+  for (const s of (data.topLosers||[]).slice(0,7))
+    html += `<div class="scanner-row"><span class="scanner-sym">${s.symbol}</span><span class="scanner-name">${(s.name||'').slice(0,20)}</span><span class="scanner-tag">${s.tag}</span><span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg down">${s.changePct}%</span></div>`;
   html += '</div></div>';
-
-  // Sector bars
-  html += '<div class="section-label" style="margin-top:1.4rem;">Sector performance</div>';
-  html += '<div class="sector-grid">';
-  for (const [tag, items] of Object.entries(data.byTag || {})) {
-    const avg = items.reduce((s, i) => s + i.changePct, 0) / items.length;
-    const sign = avg >= 0 ? '+' : '';
+  html += '<div class="section-label" style="margin-top:1.4rem;">Sector performance</div><div class="sector-grid">';
+  for (const [tag, items] of Object.entries(data.byTag||{})) {
+    const avg = items.reduce((s,i)=>s+i.changePct,0)/items.length;
     const color = avg >= 0 ? '#2ecc71' : '#e74c3c';
-    const barWidth = Math.min(Math.abs(avg) * 10, 100);
-    html += `<div class="sector-bar-card">
-      <div class="sector-name">${tag}</div>
-      <div class="sector-avg" style="color:${color}">${sign}${avg.toFixed(2)}%</div>
-      <div class="sector-tickers">${items.map(i => i.symbol).join(' · ')}</div>
-      <div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barWidth}%;background:${color}"></div></div>
-    </div>`;
+    const barW = Math.min(Math.abs(avg)*10,100);
+    html += `<div class="sector-bar-card"><div class="sector-name">${tag}</div><div class="sector-avg" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sector-tickers">${items.map(i=>i.symbol).join(' · ')}</div><div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barW}%;background:${color}"></div></div></div>`;
   }
   html += '</div>';
-
-  const ts = new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${data.fetched || (data.all || []).length}/${data.total || 43} tickers · via Yahoo Finance</p>`;
+  const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${data.fetched||(data.all||[]).length}/${data.total||43} tickers · via Yahoo Finance</p>`;
   el.innerHTML = html;
 }
 
-// NEWS
 async function loadNews() {
   const el = document.getElementById('newsContent');
   el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Fetching macro headlines...</div>';
@@ -565,115 +497,171 @@ async function loadNews() {
 }
 
 function renderNews(data, el) {
-  const pillMap = { 'oil-war': 'pill-oil-war', 'fed': 'pill-fed', 'defense': 'pill-defense', 'gold': 'pill-gold', 'credit': 'pill-credit', 'macro': 'pill-macro' };
-  const labelMap = { 'oil-war': '🔥 OIL/WAR', 'fed': '🏦 FED', 'defense': '🛡 DEFENSE', 'gold': '🪙 GOLD', 'credit': '⚠ CREDIT', 'macro': 'MACRO' };
+  const pillMap = {'oil-war':'pill-oil-war','fed':'pill-fed','defense':'pill-defense','gold':'pill-gold','credit':'pill-credit','macro':'pill-macro'};
+  const labelMap = {'oil-war':'🔥 OIL/WAR','fed':'🏦 FED','defense':'🛡 DEFENSE','gold':'🪙 GOLD','credit':'⚠ CREDIT','macro':'MACRO'};
   let html = '<div class="news-list">';
-  for (const a of (data.articles || [])) {
-    const time = new Date(a.publishedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const pillCls = pillMap[a.tag] || 'pill-macro';
-    const label = labelMap[a.tag] || a.tag;
-    const link = a.url ? `href="${a.url}" target="_blank"` : '';
-    html += `<div class="news-item">
-      <span class="news-tag-pill ${pillCls}">${label}</span>
-      <div class="news-content">
-        <div class="news-title"><a ${link} style="color:inherit;text-decoration:none;">${a.title}</a></div>
-        <div class="news-meta">${a.source} · ${time}</div>
-      </div>
-    </div>`;
+  for (const a of (data.articles||[])) {
+    const time = new Date(a.publishedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const pc = pillMap[a.tag]||'pill-macro';
+    const lb = labelMap[a.tag]||a.tag;
+    const lk = a.url ? `href="${a.url}" target="_blank"` : '';
+    html += `<div class="news-item"><span class="news-tag-pill ${pc}">${lb}</span><div class="news-content"><div class="news-title"><a ${lk} style="color:inherit;text-decoration:none;">${a.title}</a></div><div class="news-meta">${a.source} · ${time}</div></div></div>`;
   }
   html += '</div>';
-  const ts = new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
   html += `<p class="note" style="margin-top:1rem;">Last fetch: ${ts} · ${data.count} headlines · via NewsAPI</p>`;
   el.innerHTML = html;
 }
 
-// MASTER BRIEF
+// ── MASTER BRIEF: Elite PM system prompt + inline render ────────────────────
+function closeBrief() { document.getElementById('briefOutput').style.display = 'none'; }
+
+function renderBriefMarkdown(raw) {
+  return raw
+    .replace(/^#{1,3}\s+(.+)$/gm, '<span class="section-h">$1</span>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em style="color:#aaa">$1</em>')
+    .replace(/^[-•]\s+/gm, '  · ');
+}
+
 async function openMasterBrief() {
   const btn = document.getElementById('briefBtn');
   const spinner = document.getElementById('briefSpinner');
   const meta = document.getElementById('briefMeta');
+  const outputEl = document.getElementById('briefOutput');
+  const textEl = document.getElementById('briefText');
+  const tsEl = document.getElementById('briefTimestamp');
+
   btn.disabled = true;
   spinner.style.display = 'inline';
   meta.textContent = 'Fetching scan + news...';
 
   try {
-    const cash = document.getElementById('cashDisplay').textContent;
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const cash = document.getElementById('cashDisplay').textContent.replace(/[^0-9.~]/g,'').replace('~','');
+    const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const timeNow = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
 
-    // Fetch scan + news in parallel client-side
     const [scanRes, newsRes] = await Promise.allSettled([
-      fetch(SCAN_API).then(r => r.json()),
-      fetch(NEWS_API).then(r => r.json()),
+      fetch(SCAN_API).then(r=>r.json()),
+      fetch(NEWS_API).then(r=>r.json()),
     ]);
+    const scan = scanRes.status==='fulfilled' ? scanRes.value : null;
+    const news = newsRes.status==='fulfilled' ? newsRes.value : null;
 
-    const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
-    const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+    // ── SYSTEM PROMPT: Elite macro PM ──────────────────────────────────────
+    const systemPrompt = `You are an elite macro portfolio manager — 25 years running a geopolitical hedge fund with a flawless track record on war-regime trades: 2003 Iraq commodity surge, 2022 Ukraine energy, 2024 Red Sea tanker supercycle. You synthesize Druckenmiller (macro conviction + asymmetric size), PTJ (tape-reading + risk management), and Hamish Noe (war-regime specialist).
 
-    // Build prompt
-    let prompt = `You are my personal war portfolio strategist. Today is ${today}. US-Iran war ongoing. Hormuz closed. Stagflation regime.
+RULES — NON-NEGOTIABLE:
+1. Zero hedging language. Never say "consider", "might", "could potentially". You say "buy", "sell", "hold", "this is wrong", "this is obvious".
+2. Every recommendation has a conviction level: [HIGH] / [MEDIUM] / [LOW]
+3. Price targets are specific numbers, not ranges.
+4. No disclaimers, no "past performance", no "consult an advisor". You ARE the advisor.
+5. Write in tight, punchy paragraphs. Use the exact section headers requested.
+6. Maximum signal-to-noise ratio. Cut everything that isn't actionable.
+7. User profile: 22 years old, $700 uninvested cash, small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated.
 
-=== MY PORTFOLIO ===
-Uninvested cash: ${cash}
+WAR REGIME — Day 18 US-Iran:
+- Hormuz Strait closed → tanker rerouting → product tanker rates 2–3x surge
+- Brent $93–103 → supply shock → stagflation pressure
+- EU rearmament €800B → multi-decade defense supercycle locked
+- 70% Iran missile launchers neutralized → partial de-escalation risk exists but not base case
+- Fed stuck: can't cut (inflation) can't hike (recession) → paralyzed
+- USD under pressure from fiscal excess + war spending
+- Gold in ATH territory → flight to real assets`;
+
+    // ── USER PROMPT: Rich data brief ────────────────────────────────────────
+    let userPrompt = `TODAY: ${today}, ${timeNow}
+UNINVESTED CASH: $${cash}
+
+OPEN POSITIONS:
 `;
     if (_positionData.length > 0) {
-      prompt += '\nPositions:\n';
       for (const p of _positionData) {
-        prompt += `- ${p.display || p.sym}: ${p.shares} shares | Current: ${p.currentPrice || '?'} | P&L: ${p.pnl || '?'} | Thesis: ${p.thesis}\n`;
+        userPrompt += `• ${p.display}: ${p.shares} shares @ avg $${p.avgCost} | Now: ${p.currentPrice} | Today: ${p.todayChg} | P&L: ${p.pnlPct} | Mkt val: $${p.posVal}
+  Thesis: ${p.thesis}\n`;
       }
+    } else {
+      userPrompt += '• BRK-B (HOLD): 0.6065 shares, defensive anchor\n• STNG (BUY): 2.088 shares, Hormuz tanker play\n';
     }
 
     if (scan?.topGainers) {
-      prompt += `\n=== LIVE MARKET SCAN — ${scan.fetched}/${scan.total} TICKERS ===\n`;
-      prompt += `TOP GAINERS:\n`;
-      for (const s of scan.topGainers.slice(0, 10)) {
-        const sign = s.changePct >= 0 ? '+' : '';
-        prompt += `  ${s.symbol} (${s.tag}): ${sign}${s.changePct}% @ $${s.price}\n`;
-      }
-      prompt += `TOP LOSERS:\n`;
-      for (const s of scan.topLosers.slice(0, 5)) {
-        prompt += `  ${s.symbol} (${s.tag}): ${s.changePct}% @ $${s.price}\n`;
-      }
+      const scanTime = new Date(scan.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      userPrompt += `\nLIVE SCAN — ${scan.fetched}/${scan.total} tickers @ ${scanTime}:
+TOP GAINERS: ${scan.topGainers.slice(0,8).map(s=>`${s.symbol}[${s.tag}] +${s.changePct}% $${s.price}`).join(' | ')}
+TOP LOSERS: ${scan.topLosers.slice(0,6).map(s=>`${s.symbol}[${s.tag}] ${s.changePct}% $${s.price}`).join(' | ')}`;
       if (scan.sectorSummary) {
-        prompt += `\nSECTOR AVERAGES:\n`;
-        for (const sec of scan.sectorSummary) {
-          const sign = sec.avg >= 0 ? '+' : '';
-          prompt += `  ${sec.tag.toUpperCase()}: ${sign}${sec.avg}% avg (${sec.count} stocks)\n`;
-        }
+        userPrompt += `\nSECTOR AVGS: ${scan.sectorSummary.map(s=>`${s.tag.toUpperCase()} ${s.avg>=0?'+':''}${s.avg}%`).join(' | ')}`;
       }
     }
 
     if (news?.articles?.length) {
-      prompt += `\n=== LIVE NEWS — ${news.articles.length} HEADLINES ===\n`;
-      for (const a of news.articles.slice(0, 15)) {
-        const time = new Date(a.publishedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        prompt += `[${time}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
+      userPrompt += `\n\nLIVE HEADLINES — ${news.articles.length} stories:\n`;
+      for (const a of news.articles.slice(0,18)) {
+        const t = new Date(a.publishedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+        userPrompt += `[${t}][${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
       }
     }
 
-    prompt += `
-=== YOUR TASK ===
-Based on everything above give me:
-1. What actually changed in the last few hours that matters
-2. Which of my positions are affected and how
-3. Top 3 war thesis movers right now — buy/hold/avoid verdict with price
-4. Any sector showing unusual movement I'm not positioned in
-5. One high-conviction action to take today
-Be blunt. No hedging. High conviction only.`;
+    userPrompt += `
+DELIVER THIS BRIEF — use these exact headers:
 
+## 1. WHAT JUST CHANGED
+The 1–3 developments in the last 6 hours that actually move the needle. Specific, no fluff.
+
+## 2. MY POSITIONS — VERDICT
+For each position: HOLD / ADD / TRIM + one sentence reason + any thesis change.
+
+## 3. TOP 3 WAR MOVERS RIGHT NOW
+Name · current price · what's driving it · BUY/HOLD/AVOID · price target. Be specific.
+
+## 4. MISPRICING I SEE
+One sector or name where the market is clearly mispricing the war regime reality.
+
+## 5. ONE ACTION TODAY
+With $${cash} uninvested: exact ticker, exact size, exact reason. [HIGH] conviction only. If nothing meets the bar, say so.`;
+
+    // ── Render output panel ─────────────────────────────────────────────────
     const tickerCount = scan?.fetched || 0;
     const newsCount = news?.count || 0;
-    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ready`;
-    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank');
+    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · calling Claude...`;
+
+    outputEl.style.display = 'block';
+    tsEl.textContent = timeNow;
+    textEl.innerHTML = '<span class="brief-cursor"></span>';
+    outputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // ── Anthropic API call ──────────────────────────────────────────────────
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(()=>({error:{message:'HTTP '+response.status}}));
+      throw new Error(err.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    const rawText = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('') || 'No response returned.';
+    textEl.innerHTML = renderBriefMarkdown(rawText);
+    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ done`;
 
   } catch (err) {
+    document.getElementById('briefText').innerHTML = `<span style="color:#e74c3c">⚠ Error: ${err.message}</span>`;
     meta.textContent = 'Error — ' + err.message;
+    document.getElementById('briefOutput').style.display = 'block';
   } finally {
     btn.disabled = false;
     spinner.style.display = 'none';
   }
 }
 
-// EDIT PANEL
 function toggleEdit() {
   const panel = document.getElementById('editPanel');
   panel.classList.toggle('open');
@@ -681,34 +669,34 @@ function toggleEdit() {
 }
 function renderEditRows() {
   const positions = loadSavedPositions();
-  document.getElementById('editRows').innerHTML = positions.map((p, i) => `
+  document.getElementById('editRows').innerHTML = positions.map((p,i)=>`
     <div class="pos-row" id="row-${i}">
       <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
       <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
-      <input type="number" value="${p.gbp ? p.avgCost/100 : p.avgCost}" placeholder="492.15" id="cost-${i}" step="0.01">
+      <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="492.15" id="cost-${i}" step="0.01">
       <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
       <button class="del-btn" onclick="deleteRow(${i})">×</button>
     </div>`).join('');
 }
 function addEditRow() {
   const positions = loadSavedPositions();
-  positions.push({ sym: '', display: '', name: '', shares: 0, avgCost: 0, badge: 'hold', thesis: 'New position' });
+  positions.push({sym:'',display:'',name:'',shares:0,avgCost:0,badge:'hold',thesis:'New position'});
   savePositionsToStorage(positions); renderEditRows();
 }
 function deleteRow(i) {
-  const positions = loadSavedPositions(); positions.splice(i, 1);
+  const positions = loadSavedPositions(); positions.splice(i,1);
   savePositionsToStorage(positions); renderEditRows();
 }
 function savePositions() {
   const positions = loadSavedPositions();
-  const updated = positions.map((p, i) => {
-    const sym = document.getElementById(`sym-${i}`)?.value.trim() || p.sym;
-    const shares = parseFloat(document.getElementById(`shares-${i}`)?.value) || p.shares;
-    const cost = parseFloat(document.getElementById(`cost-${i}`)?.value) || p.avgCost;
-    const label = document.getElementById(`label-${i}`)?.value.trim() || p.display;
+  const updated = positions.map((p,i)=>{
+    const sym = document.getElementById(`sym-${i}`)?.value.trim()||p.sym;
+    const shares = parseFloat(document.getElementById(`shares-${i}`)?.value)||p.shares;
+    const cost = parseFloat(document.getElementById(`cost-${i}`)?.value)||p.avgCost;
+    const label = document.getElementById(`label-${i}`)?.value.trim()||p.display;
     const isGbp = sym.endsWith('.L');
-    return { ...p, sym, shares, avgCost: isGbp ? cost * 100 : cost, display: label, name: label, gbp: isGbp };
-  }).filter(p => p.sym);
+    return {...p,sym,shares,avgCost:isGbp?cost*100:cost,display:label,name:label,gbp:isGbp};
+  }).filter(p=>p.sym);
   savePositionsToStorage(updated);
   document.getElementById('editPanel').classList.remove('open');
   loadAll();
@@ -723,7 +711,7 @@ async function loadAll() {
   try {
     await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
     dot.className = 'status-dot dot-live';
-    ts.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+    ts.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
   } catch {
     dot.className = 'status-dot dot-error';
     ts.textContent = 'Error — click Refresh';
