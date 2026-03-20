@@ -255,8 +255,8 @@ const DEFAULT_POSITIONS = [
     sym: 'BRK-B',
     display: 'BRK.B',
     name: 'Berkshire Hathaway',
-    shares: 0.6,
-    avgCost: 482.60,
+    shares: 0.60636465,
+    avgCost: 494.75,
     badge: 'hold',
     thesis: 'Defensive anchor · Buffett $300B cash · stagflation shelter'
   },
@@ -264,8 +264,8 @@ const DEFAULT_POSITIONS = [
     sym: 'STNG',
     display: 'STNG',
     name: 'Scorpio Tankers',
-    shares: 2.08,
-    avgCost: 71.20,
+    shares: 2.08600752,
+    avgCost: 69.18,
     badge: 'buy',
     thesis: 'Hormuz product tanker play · rate surge on Strait rerouting'
   },
@@ -273,8 +273,8 @@ const DEFAULT_POSITIONS = [
     sym: 'DHT',
     display: 'DHT',
     name: 'DHT Holdings',
-    shares: 11.72,
-    avgCost: 18.00,
+    shares: 11.72093023,
+    avgCost: 17.20,
     badge: 'buy',
     thesis: 'Hormuz VLCC crude tanker · Strait closure = rate spike + fleet squeeze'
   },
@@ -601,7 +601,7 @@ OPEN POSITIONS:
   Thesis: ${p.thesis}\n`;
       }
     } else {
-      userPrompt += '• BRK-B (HOLD): 0.6 shares @ avg $482.60, defensive anchor\n• STNG (BUY): 2.08 shares @ avg $71.20, Hormuz product tanker play\n• DHT (BUY): 11.72 shares @ avg $18.00, VLCC crude tanker · Strait closure = rate spike\n';
+      userPrompt += '• BRK-B (HOLD): 0.60636465 shares @ avg $494.75, defensive anchor\n• STNG (BUY): 2.08600752 shares @ avg $69.18, Hormuz product tanker play\n• DHT (BUY): 11.72093023 shares @ avg $17.20, VLCC crude tanker · Strait closure = rate spike\n';
     }
 
     if (scan?.topGainers) {
@@ -650,13 +650,14 @@ With ~$${cash} uninvested: exact ticker, exact size, exact reason. [HIGH] convic
     textEl.innerHTML = '<span class="brief-cursor"></span>';
     outputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // ── Anthropic API call ──────────────────────────────────────────────────
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Anthropic API call (via server-side proxy) ────────────────────────
+    const CLAUDE_API = 'https://war-portfolio-api.vercel.app/api/claude';
+    const response = await fetch(CLAUDE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 1500,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -693,7 +694,7 @@ function renderEditRows() {
     <div class="pos-row" id="row-${i}">
       <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
       <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
-      <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="482.60" id="cost-${i}" step="0.01">
+      <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="494.75" id="cost-${i}" step="0.01">
       <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
       <button class="del-btn" onclick="deleteRow(${i})">×</button>
     </div>`).join('');
@@ -727,9 +728,9 @@ function openClaude(msg) { window.open(`https://claude.ai/new?q=${encodeURICompo
 function renderAnalysisButtons() {
   const d = WAR_DAY;
   const btns = [
-    { icon: '💰', label: 'Best trade for my uninvested cash right now ↗', msg: `Day ${d} US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD), STNG Scorpio Tankers (2.08 shares, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $18, BUY thesis: VLCC crude tanker play). I have ~$645 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.` },
+    { icon: '💰', label: 'Best trade for my uninvested cash right now ↗', msg: `Day ${d} US-Iran war. Hormuz closed. I hold BRK-B (0.606 shares @ $494.75, HOLD), STNG Scorpio Tankers (2.086 shares @ $69.18, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $17.20, BUY thesis: VLCC crude tanker play). I have ~$645 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.` },
     { icon: '🎯', label: 'Should I buy RHM today — blunt verdict ↗', msg: `Should I buy RHM (Rheinmetall) today? I already hold STNG (product tanker play), DHT (VLCC crude tanker play), and BRK-B (defensive anchor). US-Iran war Day ${d}. Give me a blunt yes or no + one paragraph reason + price target.` },
-    { icon: '🚢', label: 'STNG vs DHT — tanker thesis check ↗', msg: `I hold STNG (Scorpio Tankers, 2.08 shares) and DHT Holdings (11.72 shares @ $18). Hormuz is closed Day ${d} of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.` },
+    { icon: '🚢', label: 'STNG vs DHT — tanker thesis check ↗', msg: `I hold STNG (Scorpio Tankers, 2.086 shares @ $69.18) and DHT Holdings (11.72 shares @ $17.20). Hormuz is closed Day ${d} of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.` },
     { icon: '🔍', label: 'Defense sector — what am I missing? ↗', msg: `Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day ${d}. I have ~$645 to deploy. What is the highest asymmetry play right now?` },
     { icon: '🛡', label: 'Top 3 risks + hedges ↗', msg: `Top 3 risks to my war portfolio right now: BRK-B + STNG + DHT + ~$645 uninvested. US-Iran war Day ${d}. What can blow up my thesis and what hedges should I consider?` },
     { icon: '🏦', label: 'Private credit — threat to BRK-B? ↗', msg: 'Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.' },
