@@ -132,7 +132,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div style="text-align:right;">
       <div class="total-label">Uninvested cash</div>
-      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$700</div>
+      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$498</div>
       <div style="font-size:10px;color:#444;margin-top:3px;" id="cashSub">outside Revolut · deploy into RHM?</div>
     </div>
   </div>
@@ -173,7 +173,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <button class="add-row-btn" onclick="addEditRow()">+ Add position</button>
         <button class="save-btn" onclick="savePositions()">Save & Refresh</button>
       </div>
-      <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · STNG · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD · KTOS · HAL</p>
+      <p style="font-size:10px;color:#444;margin-top:8px;">Yahoo symbols: BRK-B · STNG · DHT · RHM.DE · HO.PA · BA.L · SHEL · FRO · GOLD · KTOS · HAL</p>
     </div>
     <div class="cards" id="posGrid"><div style="font-size:11px;color:#444;padding:4px;">Loading...</div></div>
 
@@ -222,11 +222,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div class="tab-panel" id="tab-analysis">
     <div class="section-label">Quick analysis → Claude</div>
-    <button class="ask-btn" onclick="openClaude('Day 18 US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD) and STNG Scorpio Tankers (2.088 shares, BUY thesis: Hormuz tanker play). I have $700 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.')">💰 Best trade for my $700 uninvested cash right now ↗</button>
-    <button class="ask-btn" onclick="openClaude('Should I buy RHM (Rheinmetall) today? I already hold STNG (tanker play) and BRK-B (defensive anchor). Give me a blunt yes or no + one paragraph reason + price target.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
-    <button class="ask-btn" onclick="openClaude('I hold STNG (Scorpio Tankers, 2.088 shares). Hormuz is closed Day 18 of US-Iran war. Tanker rates surging. What is the next price target for STNG? Should I add or hold? Be specific.')">🚢 STNG thesis check — add or hold? ↗</button>
-    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day 18. I have $700 to deploy. What is the highest asymmetry play right now?')">🔍 Defense sector — what am I missing? ↗</button>
-    <button class="ask-btn" onclick="openClaude('Top 3 risks to my war portfolio right now: BRK-B + STNG + $700 uninvested. What can blow up my thesis and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
+    <button class="ask-btn" onclick="openClaude('Day 18 US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD), STNG Scorpio Tankers (2.088 shares, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $17.20, BUY thesis: VLCC crude tanker play). I have ~$498 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.')">💰 Best trade for my uninvested cash right now ↗</button>
+    <button class="ask-btn" onclick="openClaude('Should I buy RHM (Rheinmetall) today? I already hold STNG (product tanker play), DHT (VLCC crude tanker play), and BRK-B (defensive anchor). Give me a blunt yes or no + one paragraph reason + price target.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
+    <button class="ask-btn" onclick="openClaude('I hold STNG (Scorpio Tankers, 2.088 shares) and DHT Holdings (11.72 shares @ $17.20). Hormuz is closed Day 18 of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.')">🚢 STNG vs DHT — tanker thesis check ↗</button>
+    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day 18. I have ~$498 to deploy. What is the highest asymmetry play right now?')">🔍 Defense sector — what am I missing? ↗</button>
+    <button class="ask-btn" onclick="openClaude('Top 3 risks to my war portfolio right now: BRK-B + STNG + DHT + ~$498 uninvested. What can blow up my thesis and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
     <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
   </div>
 
@@ -238,7 +238,7 @@ const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
 
-// ── POSITIONS: BRK-B + STNG ─────────────────────────────────────────────────
+// ── POSITIONS: BRK-B + STNG + DHT ───────────────────────────────────────────
 const DEFAULT_POSITIONS = [
   {
     sym: 'BRK-B',
@@ -256,7 +256,16 @@ const DEFAULT_POSITIONS = [
     shares: 2.088,
     avgCost: 69.50,
     badge: 'buy',
-    thesis: 'Hormuz tanker play · product tanker rate surge on Strait rerouting'
+    thesis: 'Hormuz product tanker play · rate surge on Strait rerouting'
+  },
+  {
+    sym: 'DHT',
+    display: 'DHT',
+    name: 'DHT Holdings',
+    shares: 11.72093023,
+    avgCost: 17.20,
+    badge: 'buy',
+    thesis: 'Hormuz VLCC crude tanker · Strait closure = rate spike + fleet squeeze'
   },
 ];
 
@@ -558,7 +567,7 @@ RULES — NON-NEGOTIABLE:
 4. No disclaimers, no "past performance", no "consult an advisor". You ARE the advisor.
 5. Write in tight, punchy paragraphs. Use the exact section headers requested.
 6. Maximum signal-to-noise ratio. Cut everything that isn't actionable.
-7. User profile: 22 years old, $700 uninvested cash, small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated.
+7. User profile: 22 years old, ~$498 uninvested cash, small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated. Currently holds BRK-B (defensive anchor), STNG (product tanker play), and DHT (VLCC crude tanker play).
 
 WAR REGIME — Day 18 US-Iran:
 - Hormuz Strait closed → tanker rerouting → product tanker rates 2–3x surge
@@ -571,7 +580,7 @@ WAR REGIME — Day 18 US-Iran:
 
     // ── USER PROMPT: Rich data brief ────────────────────────────────────────
     let userPrompt = `TODAY: ${today}, ${timeNow}
-UNINVESTED CASH: $${cash}
+UNINVESTED CASH: ~$${cash}
 
 OPEN POSITIONS:
 `;
@@ -581,7 +590,7 @@ OPEN POSITIONS:
   Thesis: ${p.thesis}\n`;
       }
     } else {
-      userPrompt += '• BRK-B (HOLD): 0.6065 shares, defensive anchor\n• STNG (BUY): 2.088 shares, Hormuz tanker play\n';
+      userPrompt += '• BRK-B (HOLD): 0.6065 shares @ avg $492.15, defensive anchor\n• STNG (BUY): 2.088 shares @ avg $69.50, Hormuz product tanker play\n• DHT (BUY): 11.72093023 shares @ avg $17.20, VLCC crude tanker · Strait closure = rate spike\n';
     }
 
     if (scan?.topGainers) {
@@ -609,7 +618,7 @@ DELIVER THIS BRIEF — use these exact headers:
 The 1–3 developments in the last 6 hours that actually move the needle. Specific, no fluff.
 
 ## 2. MY POSITIONS — VERDICT
-For each position: HOLD / ADD / TRIM + one sentence reason + any thesis change.
+For each position (BRK-B, STNG, DHT): HOLD / ADD / TRIM + one sentence reason + any thesis change.
 
 ## 3. TOP 3 WAR MOVERS RIGHT NOW
 Name · current price · what's driving it · BUY/HOLD/AVOID · price target. Be specific.
@@ -618,7 +627,7 @@ Name · current price · what's driving it · BUY/HOLD/AVOID · price target. Be
 One sector or name where the market is clearly mispricing the war regime reality.
 
 ## 5. ONE ACTION TODAY
-With $${cash} uninvested: exact ticker, exact size, exact reason. [HIGH] conviction only. If nothing meets the bar, say so.`;
+With ~$${cash} uninvested: exact ticker, exact size, exact reason. [HIGH] conviction only. If nothing meets the bar, say so.`;
 
     // ── Render output panel ─────────────────────────────────────────────────
     const tickerCount = scan?.fetched || 0;
