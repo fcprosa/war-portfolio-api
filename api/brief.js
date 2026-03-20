@@ -1,6 +1,13 @@
 // /api/brief.js
 // Aggregates positions, market scan, and news into a single structured prompt for Claude
 
+// War started Feb 28, 2026 — Day 1
+function getWarDay() {
+  const start = new Date('2026-02-28T00:00:00Z');
+  const now = new Date();
+  return Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET');
@@ -8,7 +15,8 @@ export default async function handler(req, res) {
   try {
     const body = req.method === 'POST' ? await readBody(req) : {};
     const positions = body.positions || [];
-    const cash = body.cash || '~$700';
+    const cash = body.cash || '~$645';
+    const warDay = getWarDay();
 
     const base = 'https://war-portfolio-api.vercel.app/api';
 
@@ -22,7 +30,7 @@ export default async function handler(req, res) {
     const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
 
     // Build structured prompt
-    let prompt = `You are my personal war portfolio strategist. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. US-Iran war Day 18. Hormuz closed. Stagflation regime active.
+    let prompt = `You are my personal war portfolio strategist. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. US-Iran war Day ${warDay}. Hormuz closed. Stagflation regime active.
 
 === MY PORTFOLIO ===
 Uninvested cash: ${cash}
@@ -78,6 +86,7 @@ Be blunt. No hedging. Treat me like a professional.`;
       prompt,
       meta: {
         timestamp: new Date().toISOString(),
+        warDay,
         scanTickers: scan?.all?.length || 0,
         newsHeadlines: news?.count || 0,
         positions: positions.length,
