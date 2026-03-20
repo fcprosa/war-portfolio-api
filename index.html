@@ -140,7 +140,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <button class="brief-btn" id="briefBtn" onclick="openMasterBrief()">
     <span id="briefSpinner" style="display:none;"><span class="spinner"></span></span>
     ⚡ BRIEF CLAUDE — Full Market Intelligence
-    <span class="brief-meta" id="briefMeta">scanner + news + positions → inline analysis</span>
+    <span class="brief-meta" id="briefMeta">scanner + news + positions → opens in Claude.ai</span>
   </button>
 
   <div id="briefOutput">
@@ -548,9 +548,6 @@ async function openMasterBrief() {
   const btn = document.getElementById('briefBtn');
   const spinner = document.getElementById('briefSpinner');
   const meta = document.getElementById('briefMeta');
-  const outputEl = document.getElementById('briefOutput');
-  const textEl = document.getElementById('briefText');
-  const tsEl = document.getElementById('briefTimestamp');
 
   btn.disabled = true;
   spinner.style.display = 'inline';
@@ -568,115 +565,99 @@ async function openMasterBrief() {
     const scan = scanRes.status==='fulfilled' ? scanRes.value : null;
     const news = newsRes.status==='fulfilled' ? newsRes.value : null;
 
-    // ── SYSTEM PROMPT: Elite macro PM ──────────────────────────────────────
-    const systemPrompt = `You are an elite macro portfolio manager — 25 years running a geopolitical hedge fund with a flawless track record on war-regime trades: 2003 Iraq commodity surge, 2022 Ukraine energy, 2024 Red Sea tanker supercycle. You synthesize Druckenmiller (macro conviction + asymmetric size), PTJ (tape-reading + risk management), and Hamish Noe (war-regime specialist).
+    // ── Build the full prompt ───────────────────────────────────────────────
+    let prompt = `You are a principal at a $4B macro hedge fund specializing in geopolitical dislocation trades. Your fund has been net long war-regime assets since Day 1 of the US-Iran conflict and is currently up 34% on the position. Your LPs expect a morning brief, not a discussion. You do not explain your reasoning process. You do not hedge. You have been right about Hormuz, right about EU rearmament, and right about the tanker supercycle. You are not here to be careful — you are here to be correct. Today is ${today}, ${timeNow}. War regime Day ${WAR_DAY}.
 
-RULES — NON-NEGOTIABLE:
-1. Zero hedging language. Never say "consider", "might", "could potentially". You say "buy", "sell", "hold", "this is wrong", "this is obvious".
-2. Every recommendation has a conviction level: [HIGH] / [MEDIUM] / [LOW]
-3. Price targets are specific numbers, not ranges.
-4. No disclaimers, no "past performance", no "consult an advisor". You ARE the advisor.
-5. Write in tight, punchy paragraphs. Use the exact section headers requested.
-6. Maximum signal-to-noise ratio. Cut everything that isn't actionable.
-7. User profile: 22 years old, ~$645 uninvested cash ($146 Revolut cash + ~$498 outside), small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated. Currently holds BRK-B (defensive anchor), STNG (product tanker play), and DHT (VLCC crude tanker play).
-
-WAR REGIME — Day ${WAR_DAY} US-Iran:
-- Hormuz Strait closed → tanker rerouting → product tanker rates 2–3x surge
-- Brent $93–103 → supply shock → stagflation pressure
-- EU rearmament €800B → multi-decade defense supercycle locked
-- 70% Iran missile launchers neutralized → partial de-escalation risk exists but not base case
-- Fed stuck: can't cut (inflation) can't hike (recession) → paralyzed
-- USD under pressure from fiscal excess + war spending
-- Gold in ATH territory → flight to real assets`;
-
-    // ── USER PROMPT: Rich data brief ────────────────────────────────────────
-    let userPrompt = `TODAY: ${today}, ${timeNow}
-UNINVESTED CASH: ~$${cash}
-
-OPEN POSITIONS:
+=== MY PORTFOLIO ===
+Uninvested cash: ~$${cash}
 `;
+
+    // Positions
+    prompt += '\nPositions:\n';
     if (_positionData.length > 0) {
       for (const p of _positionData) {
-        userPrompt += `• ${p.display}: ${p.shares} shares @ avg $${p.avgCost} | Now: ${p.currentPrice} | Today: ${p.todayChg} | P&L: ${p.pnlPct} | Mkt val: $${p.posVal}
-  Thesis: ${p.thesis}\n`;
+        prompt += `- ${p.display}: ${p.shares} shares @ avg $${p.avgCost} | Current: ${p.currentPrice} | Today: ${p.todayChg} | P&L: ${p.pnlPct} | Thesis: ${p.thesis}\n`;
       }
     } else {
-      userPrompt += '• BRK-B (HOLD): 0.60636465 shares @ avg $494.75, defensive anchor\n• STNG (BUY): 2.08600752 shares @ avg $69.18, Hormuz product tanker play\n• DHT (BUY): 11.72093023 shares @ avg $17.20, VLCC crude tanker · Strait closure = rate spike\n';
+      prompt += '- BRK.B: 0.60636465 shares @ avg $494.75 | Thesis: Defensive anchor\n- STNG: 2.08600752 shares @ avg $69.18 | Thesis: Hormuz product tanker play\n- DHT: 11.72093023 shares @ avg $17.20 | Thesis: VLCC crude tanker play\n';
     }
 
+    // Scanner data
     if (scan?.topGainers) {
       const scanTime = new Date(scan.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-      userPrompt += `\nLIVE SCAN — ${scan.fetched}/${scan.total} tickers @ ${scanTime}:
-TOP GAINERS: ${scan.topGainers.slice(0,8).map(s=>`${s.symbol}[${s.tag}] +${s.changePct}% $${s.price}`).join(' | ')}
-TOP LOSERS: ${scan.topLosers.slice(0,6).map(s=>`${s.symbol}[${s.tag}] ${s.changePct}% $${s.price}`).join(' | ')}`;
+      prompt += `\n=== LIVE MARKET SCAN — ${scan.fetched}/${scan.total} TICKERS @ ${scanTime} ===\n`;
+      prompt += 'TOP GAINERS:\n';
+      for (const s of scan.topGainers.slice(0,10)) {
+        const cs = s.currency === 'EUR' ? '€' : (s.currency === 'GBp' ? '£' : '$');
+        prompt += `${s.symbol} (${s.tag}): +${s.changePct}% @ ${cs}${s.price}\n`;
+      }
+      prompt += 'TOP LOSERS:\n';
+      for (const s of scan.topLosers.slice(0,5)) {
+        const cs = s.currency === 'EUR' ? '€' : (s.currency === 'GBp' ? '£' : '$');
+        prompt += `${s.symbol} (${s.tag}): ${s.changePct}% @ ${cs}${s.price}\n`;
+      }
       if (scan.sectorSummary) {
-        userPrompt += `\nSECTOR AVGS: ${scan.sectorSummary.map(s=>`${s.tag.toUpperCase()} ${s.avg>=0?'+':''}${s.avg}%`).join(' | ')}`;
+        prompt += '\nSECTOR AVERAGES:\n';
+        for (const s of scan.sectorSummary) {
+          prompt += `${s.tag.toUpperCase()}: ${s.avg>=0?'+':''}${s.avg}% avg (${s.count} stocks)\n`;
+        }
       }
     }
 
+    // News
     if (news?.articles?.length) {
-      userPrompt += `\n\nLIVE HEADLINES — ${news.articles.length} stories:\n`;
-      for (const a of news.articles.slice(0,18)) {
+      prompt += `\n=== LIVE NEWS — ${news.articles.length} HEADLINES ===\n`;
+      for (const a of news.articles.slice(0,20)) {
         const t = new Date(a.publishedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        userPrompt += `[${t}][${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
+        prompt += `[${t}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
       }
     }
 
-    userPrompt += `
-DELIVER THIS BRIEF — use these exact headers:
+    // Instructions
+    prompt += `
+You are in character. No breaking character. No disclaimers. No softening.
+Given the live data above, deliver exactly this — nothing more, nothing less:
 
-## 1. WHAT JUST CHANGED
-The 1–3 developments in the last 6 hours that actually move the needle. Specific, no fluff.
+━━━ 1. SIGNAL DELTA (last 6h) ━━━
+What actually changed that reprices assets. Not news — what it MEANS for prices.
+Max 3 bullets. Each bullet = development + direct price implication.
+Format: "[TICKER or SECTOR] → [what just happened] → [price consequence]"
 
-## 2. MY POSITIONS — VERDICT
-For each position (BRK-B, STNG, DHT): HOLD / ADD / TRIM + one sentence reason + any thesis change.
+━━━ 2. POSITION AUDIT ━━━
+For each of my positions, one line each:
+[TICKER] | [HOLD/ADD/TRIM/CUT] | Conviction: [HIGH/MED/LOW] | [one sentence max]
 
-## 3. TOP 3 WAR MOVERS RIGHT NOW
-Name · current price · what's driving it · BUY/HOLD/AVOID · price target. Be specific.
+━━━ 3. TOP 3 WAR MOVERS ━━━
+Format per name:
+[TICKER] — [price] — [BUY/HOLD/AVOID] — Target: $[X] — Conviction: [HIGH/MED/LOW]
+One sentence: why this, why now.
 
-## 4. MISPRICING I SEE
-One sector or name where the market is clearly mispricing the war regime reality.
+━━━ 4. SECTOR DISLOCATION ━━━
+One sector only — the one most mispriced relative to Day ${WAR_DAY} war regime reality.
+Name the sector, name the mispricing, name the best single entry point.
 
-## 5. ONE ACTION TODAY
-With ~$${cash} uninvested: exact ticker, exact size, exact reason. [HIGH] conviction only. If nothing meets the bar, say so.`;
+━━━ 5. THE TRADE ━━━
+$${cash} to deploy. One trade only. No alternatives.
+[TICKER] | [EXACT SIZE in dollars] | Entry: $[X] | Target: $[X] | Stop: $[X]
+Conviction: [HIGH] — if you can't say HIGH, say nothing.
+One paragraph: the thesis in plain language.
 
-    // ── Render output panel ─────────────────────────────────────────────────
+HARD RULES:
+✗ Never use: "consider", "might", "could", "potentially", "it's worth noting"
+✗ Never add a disclaimer or caveat of any kind
+✗ Never say "I" or reference yourself
+✗ If conviction is below MEDIUM on everything, say "NO TRADE TODAY" and explain why in 2 sentences`;
+
+    // Open in Claude.ai
     const tickerCount = scan?.fetched || 0;
     const newsCount = news?.count || 0;
-    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · calling Claude...`;
+    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · opening Claude...`;
 
-    outputEl.style.display = 'block';
-    tsEl.textContent = timeNow;
-    textEl.innerHTML = '<span class="brief-cursor"></span>';
-    outputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // ── Anthropic API call (via server-side proxy) ────────────────────────
-    const CLAUDE_API = 'https://war-portfolio-api.vercel.app/api/claude';
-    const response = await fetch(CLAUDE_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(()=>({error:{message:'HTTP '+response.status}}));
-      throw new Error(err.error?.message || 'API error ' + response.status);
-    }
-
-    const data = await response.json();
-    const rawText = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('') || 'No response returned.';
-    textEl.innerHTML = renderBriefMarkdown(rawText);
-    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ done`;
+    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank');
+    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ opened in Claude.ai`;
 
   } catch (err) {
-    document.getElementById('briefText').innerHTML = `<span style="color:#e74c3c">⚠ Error: ${err.message}</span>`;
     meta.textContent = 'Error — ' + err.message;
-    document.getElementById('briefOutput').style.display = 'block';
   } finally {
     btn.disabled = false;
     spinner.style.display = 'none';
