@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>War Portfolio · Day 18</title>
+<title>War Portfolio</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #f0f0f0; padding: 1.5rem; min-height: 100vh; }
@@ -115,14 +115,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <body>
 <div class="dash">
   <div class="header">
-    <h2><span class="status-dot dot-loading" id="dot"></span>War Portfolio · Day 18</h2>
+    <h2><span class="status-dot dot-loading" id="dot"></span>War Portfolio · Day <span id="warDay">—</span></h2>
     <div style="display:flex;gap:10px;align-items:center;">
       <span class="ts" id="ts">Connecting...</span>
       <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
     </div>
   </div>
 
-  <div class="war-bar">⚠ US-Iran Day 18 · Hormuz closed · Oil $93–103 · 70% Iran missile launchers neutralized · EU rearmament €800B locked · Stagflation regime</div>
+  <div class="war-bar" id="warBar">⚠ US-Iran Day <span id="warDayBar">—</span> · Hormuz closed · Oil $93–103 · 70% Iran missile launchers neutralized · EU rearmament €800B locked · Stagflation regime</div>
 
   <div class="portfolio-bar">
     <div>
@@ -132,8 +132,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div style="text-align:right;">
       <div class="total-label">Uninvested cash</div>
-      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$498</div>
-      <div style="font-size:10px;color:#444;margin-top:3px;" id="cashSub">outside Revolut · deploy into RHM?</div>
+      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$645</div>
+      <div style="font-size:10px;color:#444;margin-top:3px;" id="cashSub">$146 Revolut cash + ~$498 outside</div>
     </div>
   </div>
 
@@ -222,12 +222,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div class="tab-panel" id="tab-analysis">
     <div class="section-label">Quick analysis → Claude</div>
-    <button class="ask-btn" onclick="openClaude('Day 18 US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD), STNG Scorpio Tankers (2.088 shares, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $17.20, BUY thesis: VLCC crude tanker play). I have ~$498 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.')">💰 Best trade for my uninvested cash right now ↗</button>
-    <button class="ask-btn" onclick="openClaude('Should I buy RHM (Rheinmetall) today? I already hold STNG (product tanker play), DHT (VLCC crude tanker play), and BRK-B (defensive anchor). Give me a blunt yes or no + one paragraph reason + price target.')">🎯 Should I buy RHM today — blunt verdict ↗</button>
-    <button class="ask-btn" onclick="openClaude('I hold STNG (Scorpio Tankers, 2.088 shares) and DHT Holdings (11.72 shares @ $17.20). Hormuz is closed Day 18 of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.')">🚢 STNG vs DHT — tanker thesis check ↗</button>
-    <button class="ask-btn" onclick="openClaude('Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day 18. I have ~$498 to deploy. What is the highest asymmetry play right now?')">🔍 Defense sector — what am I missing? ↗</button>
-    <button class="ask-btn" onclick="openClaude('Top 3 risks to my war portfolio right now: BRK-B + STNG + DHT + ~$498 uninvested. What can blow up my thesis and what hedges should I consider?')">🛡 Top 3 risks + hedges ↗</button>
-    <button class="ask-btn" onclick="openClaude('Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.')">🏦 Private credit — threat to BRK-B? ↗</button>
+    <div id="analysisButtons"></div>
   </div>
 
   <p class="note">Live data: Yahoo Finance · RSS feeds: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app · Brief: claude-sonnet-4-6 (Druckenmiller persona)</p>
@@ -238,14 +233,30 @@ const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
 
+// ── WAR DAY COUNTER: Feb 28, 2026 = Day 1 ──────────────────────────────────
+const WAR_START = new Date('2026-02-28T00:00:00');
+function getWarDay() {
+  const now = new Date();
+  const diff = Math.floor((now - WAR_START) / (1000 * 60 * 60 * 24));
+  return diff + 1; // Day 1 = Feb 28
+}
+const WAR_DAY = getWarDay();
+document.title = `War Portfolio · Day ${WAR_DAY}`;
+document.addEventListener('DOMContentLoaded', () => {
+  const wd = document.getElementById('warDay');
+  const wdb = document.getElementById('warDayBar');
+  if (wd) wd.textContent = WAR_DAY;
+  if (wdb) wdb.textContent = WAR_DAY;
+});
+
 // ── POSITIONS: BRK-B + STNG + DHT ───────────────────────────────────────────
 const DEFAULT_POSITIONS = [
   {
     sym: 'BRK-B',
     display: 'BRK.B',
     name: 'Berkshire Hathaway',
-    shares: 0.6065,
-    avgCost: 492.15,
+    shares: 0.6,
+    avgCost: 482.60,
     badge: 'hold',
     thesis: 'Defensive anchor · Buffett $300B cash · stagflation shelter'
   },
@@ -253,8 +264,8 @@ const DEFAULT_POSITIONS = [
     sym: 'STNG',
     display: 'STNG',
     name: 'Scorpio Tankers',
-    shares: 2.088,
-    avgCost: 69.50,
+    shares: 2.08,
+    avgCost: 71.20,
     badge: 'buy',
     thesis: 'Hormuz product tanker play · rate surge on Strait rerouting'
   },
@@ -262,8 +273,8 @@ const DEFAULT_POSITIONS = [
     sym: 'DHT',
     display: 'DHT',
     name: 'DHT Holdings',
-    shares: 11.72093023,
-    avgCost: 17.20,
+    shares: 11.72,
+    avgCost: 18.00,
     badge: 'buy',
     thesis: 'Hormuz VLCC crude tanker · Strait closure = rate spike + fleet squeeze'
   },
@@ -567,9 +578,9 @@ RULES — NON-NEGOTIABLE:
 4. No disclaimers, no "past performance", no "consult an advisor". You ARE the advisor.
 5. Write in tight, punchy paragraphs. Use the exact section headers requested.
 6. Maximum signal-to-noise ratio. Cut everything that isn't actionable.
-7. User profile: 22 years old, ~$498 uninvested cash, small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated. Currently holds BRK-B (defensive anchor), STNG (product tanker play), and DHT (VLCC crude tanker play).
+7. User profile: 22 years old, ~$645 uninvested cash ($146 Revolut cash + ~$498 outside), small account, high risk tolerance, wants asymmetric war-regime upside. EU citizen, AML professional, analytically sophisticated. Currently holds BRK-B (defensive anchor), STNG (product tanker play), and DHT (VLCC crude tanker play).
 
-WAR REGIME — Day 18 US-Iran:
+WAR REGIME — Day ${WAR_DAY} US-Iran:
 - Hormuz Strait closed → tanker rerouting → product tanker rates 2–3x surge
 - Brent $93–103 → supply shock → stagflation pressure
 - EU rearmament €800B → multi-decade defense supercycle locked
@@ -590,7 +601,7 @@ OPEN POSITIONS:
   Thesis: ${p.thesis}\n`;
       }
     } else {
-      userPrompt += '• BRK-B (HOLD): 0.6065 shares @ avg $492.15, defensive anchor\n• STNG (BUY): 2.088 shares @ avg $69.50, Hormuz product tanker play\n• DHT (BUY): 11.72093023 shares @ avg $17.20, VLCC crude tanker · Strait closure = rate spike\n';
+      userPrompt += '• BRK-B (HOLD): 0.6 shares @ avg $482.60, defensive anchor\n• STNG (BUY): 2.08 shares @ avg $71.20, Hormuz product tanker play\n• DHT (BUY): 11.72 shares @ avg $18.00, VLCC crude tanker · Strait closure = rate spike\n';
     }
 
     if (scan?.topGainers) {
@@ -682,7 +693,7 @@ function renderEditRows() {
     <div class="pos-row" id="row-${i}">
       <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
       <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
-      <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="492.15" id="cost-${i}" step="0.01">
+      <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="482.60" id="cost-${i}" step="0.01">
       <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
       <button class="del-btn" onclick="deleteRow(${i})">×</button>
     </div>`).join('');
@@ -713,10 +724,26 @@ function savePositions() {
 
 function openClaude(msg) { window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank'); }
 
+function renderAnalysisButtons() {
+  const d = WAR_DAY;
+  const btns = [
+    { icon: '💰', label: 'Best trade for my uninvested cash right now ↗', msg: `Day ${d} US-Iran war. Hormuz closed. I hold BRK-B (0.6 shares, HOLD), STNG Scorpio Tankers (2.08 shares, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $18, BUY thesis: VLCC crude tanker play). I have ~$645 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.` },
+    { icon: '🎯', label: 'Should I buy RHM today — blunt verdict ↗', msg: `Should I buy RHM (Rheinmetall) today? I already hold STNG (product tanker play), DHT (VLCC crude tanker play), and BRK-B (defensive anchor). US-Iran war Day ${d}. Give me a blunt yes or no + one paragraph reason + price target.` },
+    { icon: '🚢', label: 'STNG vs DHT — tanker thesis check ↗', msg: `I hold STNG (Scorpio Tankers, 2.08 shares) and DHT Holdings (11.72 shares @ $18). Hormuz is closed Day ${d} of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.` },
+    { icon: '🔍', label: 'Defense sector — what am I missing? ↗', msg: `Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day ${d}. I have ~$645 to deploy. What is the highest asymmetry play right now?` },
+    { icon: '🛡', label: 'Top 3 risks + hedges ↗', msg: `Top 3 risks to my war portfolio right now: BRK-B + STNG + DHT + ~$645 uninvested. US-Iran war Day ${d}. What can blow up my thesis and what hedges should I consider?` },
+    { icon: '🏦', label: 'Private credit — threat to BRK-B? ↗', msg: 'Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.' },
+  ];
+  const el = document.getElementById('analysisButtons');
+  if (!el) return;
+  el.innerHTML = btns.map(b => `<button class="ask-btn" onclick="openClaude(\`${b.msg.replace(/`/g,'\\`')}\`)">${b.icon} ${b.label}</button>`).join('');
+}
+
 async function loadAll() {
   const dot = document.getElementById('dot'), ts = document.getElementById('ts');
   dot.className = 'status-dot dot-loading';
   ts.textContent = 'Fetching live prices...';
+  renderAnalysisButtons();
   try {
     await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
     dot.className = 'status-dot dot-live';
