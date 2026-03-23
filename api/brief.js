@@ -1,15 +1,15 @@
 // /api/brief.js
 // Aggregates positions, market scan, and news into a single structured prompt for Claude
-
-// War started Feb 28, 2026 — Day 1
-function getWarDay() {
-  const start = new Date('2026-02-28T00:00:00Z');
-  const now = new Date();
-  return Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
-}
+import { runScan } from '../lib/scanner.js';
+import { fetchAllNews } from '../lib/news.js';
+import { getWarDay } from '../lib/utils.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  const allowed = ['https://war-portfolio-api.vercel.app', 'http://localhost:3000', 'http://localhost:5500'];
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET');
 
   try {
@@ -18,16 +18,17 @@ export default async function handler(req, res) {
     const cash = body.cash || '~$645';
     const warDay = getWarDay();
 
-    const base = 'https://war-portfolio-api.vercel.app/api';
-
-    // Fetch scan + news in parallel
+    // Fetch scan + news in parallel — no self HTTP calls
     const [scanRes, newsRes] = await Promise.allSettled([
-      fetch(`${base}/scan`).then(r => r.json()),
-      fetch(`${base}/news`).then(r => r.json()),
+      runScan(),
+      fetchAllNews(),
     ]);
 
     const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
     const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+
+    if (scanRes.status === 'rejected') console.error('[brief] scan failed:', scanRes.reason?.message);
+    if (newsRes.status === 'rejected') console.error('[brief] news failed:', newsRes.reason?.message);
 
     // Build structured prompt
     let prompt = `You are my personal war portfolio strategist. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. US-Iran war Day ${warDay}. Hormuz closed. Stagflation regime active.
@@ -54,7 +55,6 @@ Uninvested cash: ${cash}
         prompt += `- ${s.symbol} (${s.tag}): ${s.changePct}% | $${s.price}\n`;
       }
 
-      // Sector summary
       const tags = Object.keys(scan.byTag);
       prompt += `\nSECTOR PERFORMANCE:\n`;
       for (const tag of tags) {
@@ -94,6 +94,7 @@ Be blunt. No hedging. Treat me like a professional.`;
     });
 
   } catch (err) {
+    console.error('[brief] handler failed:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }

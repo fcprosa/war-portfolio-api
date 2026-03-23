@@ -53,16 +53,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .brief-btn:hover { background: #0d3020; }
 .brief-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .brief-btn .brief-meta { font-size: 10px; color: #555; font-weight: 400; margin-left: auto; }
-#briefOutput { display: none; background: #0d1f14; border: 0.5px solid #1a4028; border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1rem; font-size: 12.5px; line-height: 1.7; color: #d4f0e0; position: relative; }
-#briefOutput.visible { display: block; }
-.brief-header { font-size: 10px; font-weight: 700; color: #2ecc71; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between; }
-.brief-close { background: transparent; border: 0.5px solid #1a4028; color: #555; border-radius: 5px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
-.brief-close:hover { color: #e74c3c; border-color: #e74c3c; }
-#briefText { white-space: pre-wrap; word-break: break-word; }
-#briefText .section-h { color: #fff; font-weight: 700; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; display: block; margin-top: 1rem; margin-bottom: 0.3rem; border-bottom: 0.5px solid #1a4028; padding-bottom: 3px; }
-#briefText strong { color: #2ecc71; }
-.brief-cursor { display: inline-block; width: 7px; height: 13px; background: #2ecc71; animation: blink 0.8s steps(1) infinite; vertical-align: middle; margin-left: 2px; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
 .ask-btn:hover { background: #1a1a1a; color: #ccc; }
 .scanner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -143,14 +133,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <span class="brief-meta" id="briefMeta">scanner + news + positions → opens in Claude.ai</span>
   </button>
 
-  <div id="briefOutput">
-    <div class="brief-header">
-      <span>⚡ WAR PORTFOLIO BRIEF — <span id="briefTimestamp"></span></span>
-      <button class="brief-close" onclick="closeBrief()">✕ Close</button>
-    </div>
-    <div id="briefText"></div>
-  </div>
-
   <div class="tabs">
     <button class="tab active" onclick="switchTab('portfolio', event)">Portfolio</button>
     <button class="tab" onclick="switchTab('scanner', event)">🔍 Market Scanner</button>
@@ -207,7 +189,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="tab-panel" id="tab-scanner">
     <div class="section-label">
       <span>War thesis universe — live scan</span>
-      <button class="icon-btn" onclick="loadScanner()">↻ Refresh scan</button>
+      <button class="icon-btn" onclick="loadScanner(true)">↻ Refresh scan</button>
     </div>
     <div id="scannerContent"><div style="font-size:11px;color:#444;padding:8px;">Click Refresh scan or switch to this tab to load...</div></div>
   </div>
@@ -215,7 +197,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="tab-panel" id="tab-news">
     <div class="section-label">
       <span>Live macro headlines</span>
-      <button class="icon-btn" onclick="loadNews()">↻ Refresh</button>
+      <button class="icon-btn" onclick="loadNews(true)">↻ Refresh</button>
     </div>
     <div id="newsContent"><div style="font-size:11px;color:#444;padding:8px;">Click Refresh or switch to this tab to load...</div></div>
   </div>
@@ -232,6 +214,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
+const CONFIG_API = 'https://war-portfolio-api.vercel.app/api/config';
+
+// Task 4: XSS sanitization helper
+function esc(str) {
+  const el = document.createElement('div');
+  el.textContent = str || '';
+  return el.innerHTML;
+}
+
+// Task 9: in-memory cache with TTL
+const _cache = {};
+function getCached(key, ttlMs) {
+  const entry = _cache[key];
+  if (entry && (Date.now() - entry.ts) < ttlMs) return entry.data;
+  return null;
+}
+function setCache(key, data) {
+  _cache[key] = { data, ts: Date.now() };
+}
 
 // ── WAR DAY COUNTER: Feb 28, 2026 = Day 1 ──────────────────────────────────
 const WAR_START = new Date('2026-02-28T00:00:00');
@@ -249,50 +250,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (wdb) wdb.textContent = WAR_DAY;
 });
 
-// ── POSITIONS: BRK-B + STNG + DHT ───────────────────────────────────────────
-const DEFAULT_POSITIONS = [
-  {
-    sym: 'BRK-B',
-    display: 'BRK.B',
-    name: 'Berkshire Hathaway',
-    shares: 0.60636465,
-    avgCost: 494.75,
-    badge: 'hold',
-    thesis: 'Defensive anchor · Buffett $300B cash · stagflation shelter'
-  },
-  {
-    sym: 'STNG',
-    display: 'STNG',
-    name: 'Scorpio Tankers',
-    shares: 2.08600752,
-    avgCost: 69.18,
-    badge: 'buy',
-    thesis: 'Hormuz product tanker play · rate surge on Strait rerouting'
-  },
-  {
-    sym: 'DHT',
-    display: 'DHT',
-    name: 'DHT Holdings',
-    shares: 11.72093023,
-    avgCost: 17.20,
-    badge: 'buy',
-    thesis: 'Hormuz VLCC crude tanker · Strait closure = rate spike + fleet squeeze'
-  },
-];
+// Task 5: defaults loaded from /api/config (set via Vercel env vars)
+let DEFAULT_POSITIONS = [];
+let DEFAULT_WATCHLIST = [];
 
-const DEFAULT_WATCHLIST = [
-  { sym: 'RHM.DE',  display: 'RHM',      name: 'Rheinmetall AG',    badge: 'buy',   thesis: 'EU rearmament · Target €2,114 · Earnings May 7', custom: false },
-  { sym: 'HO.PA',   display: 'Thales',   name: 'Thales SA',         badge: 'watch', thesis: 'EU defense · Radar + C2 systems', custom: false },
-  { sym: 'BA.L',    display: 'BAE Sys',  name: 'BAE Systems',       badge: 'watch', thesis: 'UK defense · F-35 + naval', custom: false },
-  { sym: 'LDO.MI',  display: 'Leonardo', name: 'Leonardo SpA',      badge: 'watch', thesis: 'Italian defense + aerospace', custom: false },
-  { sym: 'SHEL',    display: 'Shell',    name: 'Shell PLC',         badge: 'watch', thesis: 'Hormuz oil beneficiary + dividend', custom: false },
-  { sym: 'FRO',     display: 'Frontline',name: 'Frontline Ltd',     badge: 'watch', thesis: 'Tanker rates ATH · 600 ships stuck', custom: false },
-  { sym: 'HAL',     display: 'HAL',      name: 'Halliburton',       badge: 'buy',   thesis: 'Oil services · drills harder when supply disrupted', custom: false },
-  { sym: 'MOS',     display: 'MOS',      name: 'Mosaic Co',         badge: 'watch', thesis: 'Fertilizer · Iran food crisis + ag miner', custom: false },
-  { sym: 'KTOS',    display: 'KTOS',     name: 'Kratos Defense',    badge: 'watch', thesis: 'US drones · MQ-9 losses = replacement demand', custom: false },
-  { sym: 'GOLD',    display: 'Barrick',  name: 'Barrick Gold Corp', badge: 'watch', thesis: 'Leveraged gold play', custom: false },
-  { sym: 'NEM',     display: 'Newmont',  name: 'Newmont Corp',      badge: 'watch', thesis: 'Gold miner diversifier', custom: false },
-];
+async function loadConfig() {
+  try {
+    const r = await fetch(CONFIG_API);
+    const cfg = await r.json();
+    DEFAULT_POSITIONS = cfg.positions || [];
+    DEFAULT_WATCHLIST = cfg.watchlist || [];
+    if (cfg.cash) document.getElementById('cashDisplay').textContent = cfg.cash;
+    if (cfg.cashSub) document.getElementById('cashSub').textContent = cfg.cashSub;
+  } catch (e) {
+    console.warn('[ui] config load failed:', e.message);
+  }
+}
 
 function loadWatchlistItems() {
   try { const s = localStorage.getItem('warWatchlist'); return s ? JSON.parse(s) : DEFAULT_WATCHLIST; } catch { return DEFAULT_WATCHLIST; }
@@ -389,9 +362,15 @@ async function loadPositions() {
   const positions = loadSavedPositions();
   let html = '', totalVal = 0, totalCost = 0, hasData = false;
   _positionData = [];
-  for (const p of positions) {
-    try {
-      const q = await getQuote(p.sym);
+
+  // Task 3: parallel fetches instead of sequential for...await
+  const quotes = await Promise.allSettled(
+    positions.map(p => getQuote(p.sym).then(q => ({ pos: p, quote: q })))
+  );
+
+  for (const result of quotes) {
+    if (result.status === 'fulfilled') {
+      const { pos: p, quote: q } = result.value;
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const avgCostAdj = p.gbp ? p.avgCost / 100 : p.avgCost;
       const posVal = priceAdj * p.shares;
@@ -409,16 +388,22 @@ async function loadPositions() {
         posVal: posVal.toFixed(2),
         todayChg: q.chgPct != null ? (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + '%' : '—'
       });
+      // Task 4: esc() on user-facing text fields
       html += `<div class="card">
         <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
-        <div class="card-ticker">${p.display}</div>
-        <div class="card-name">${p.name}</div>
+        <div class="card-ticker">${esc(p.display)}</div>
+        <div class="card-name">${esc(p.name)}</div>
         <div class="card-price">${cs}${displayPrice}</div>
         <div class="card-change">Today: ${chgHtml(q.chgPct)}</div>
-        <div class="card-sub">${p.shares} shares · ${p.thesis}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
+        <div class="card-sub">${p.shares} shares · ${esc(p.thesis)}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
       </div>`;
-    } catch {
-      html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${p.display||p.sym}</div><div class="card-name">${p.name||''}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${p.thesis||''}</div></div>`;
+    } else {
+      // Task 6: log the error; Task 4: esc fields
+      console.warn('[ui] quote failed:', result.reason?.message);
+      const p = positions[quotes.indexOf(result)];
+      if (p) {
+        html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${esc(p.display||p.sym)}</div><div class="card-name">${esc(p.name||'')}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(p.thesis||'')}</div></div>`;
+      }
     }
   }
   document.getElementById('posGrid').innerHTML = html;
@@ -434,67 +419,96 @@ async function loadPositions() {
 async function loadWatchlist() {
   const items = loadWatchlistItems();
   let html = '';
-  for (const w of items) {
-    try {
-      const q = await getQuote(w.sym);
+
+  // Task 3: parallel fetches
+  const quotes = await Promise.allSettled(
+    items.map(w => getQuote(w.sym).then(q => ({ item: w, quote: q })))
+  );
+
+  for (const result of quotes) {
+    if (result.status === 'fulfilled') {
+      const { item: w, quote: q } = result.value;
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
-      const rb = w.custom ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
-      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price">${cs}${priceAdj.toFixed(2)}</div><div class="card-change">${chgHtml(q.chgPct)}</div><div class="card-sub" style="padding-right:${w.custom?'14px':'0'}">${w.thesis}</div>${rb}</div>`;
-    } catch {
-      const rb = w.custom ? `<button onclick="removeFromWatchlist('${w.sym}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
-      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${w.display}</div><div class="card-name">${w.name}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${w.thesis}</div>${rb}</div>`;
+      const rb = w.custom ? `<button onclick="removeFromWatchlist('${esc(w.sym)}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
+      // Task 4: esc on text fields
+      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price">${cs}${priceAdj.toFixed(2)}</div><div class="card-change">${chgHtml(q.chgPct)}</div><div class="card-sub" style="padding-right:${w.custom?'14px':'0'}">${esc(w.thesis)}</div>${rb}</div>`;
+    } else {
+      console.warn('[ui] quote failed:', result.reason?.message);
+      const w = items[quotes.indexOf(result)];
+      if (w) {
+        const rb = w.custom ? `<button onclick="removeFromWatchlist('${esc(w.sym)}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
+        html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(w.thesis)}</div>${rb}</div>`;
+      }
     }
   }
   document.getElementById('watchGrid').innerHTML = html;
 }
 
 async function loadMacro() {
-  for (const m of MACRO) {
-    try {
-      const q = await getQuote(m.sym);
+  // Task 3: parallel fetches
+  const quotes = await Promise.allSettled(MACRO.map(m => getQuote(m.sym).then(q => ({ m, q }))));
+  for (const result of quotes) {
+    if (result.status === 'fulfilled') {
+      const { m, q } = result.value;
       const el = document.getElementById(m.id), sel = document.getElementById(m.sid);
       if (el) el.textContent = m.prefix + q.price.toFixed(m.dec);
       if (sel) sel.innerHTML = chgHtml(q.chgPct);
-    } catch {
-      const el = document.getElementById(m.id);
+    } else {
+      console.warn('[ui] macro quote failed:', result.reason?.message);
+      const idx = quotes.indexOf(result);
+      const el = document.getElementById(MACRO[idx]?.id);
       if (el) { el.textContent = 'N/A'; el.style.color = '#444'; }
     }
   }
 }
 
-async function loadScanner() {
+async function loadScanner(force = false) {
   const el = document.getElementById('scannerContent');
+  // Task 9: serve from cache unless force refresh
+  if (!force) {
+    const cached = getCached('scan', 5 * 60 * 1000);
+    if (cached) { renderScanner(cached, el); return; }
+  }
   el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Scanning war universe tickers...</div>';
   try {
     const r = await fetch(SCAN_API);
     if (!r.ok) throw new Error('Scan API error ' + r.status);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
+    setCache('scan', data);
     renderScanner(data, el);
   } catch (err) {
-    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">Scanner error: ${err.message}</div>`;
+    console.warn('[ui] scanner failed:', err.message);
+    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">Scanner error: ${esc(err.message)}</div>`;
   }
 }
 
 function renderScanner(data, el) {
   function cs(c) { return c === 'EUR' ? '€' : (c === 'GBp' || c === 'GBP') ? '£' : '$'; }
   function fmtPrice(s) { return cs(s.currency) + (s.currency === 'GBp' ? (s.price/100).toFixed(2) : s.price.toFixed(2)); }
+  // Task 10: volume spike badge
+  function volBadge(s) {
+    return s.volumeSpike && s.volumeSpike > 2
+      ? `<span style="color:#f39c12;font-size:9px;font-weight:700;">${s.volumeSpike}x vol</span>`
+      : '';
+  }
   let html = '<div class="scanner-grid">';
   html += `<div class="scanner-card"><div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
   for (const s of (data.topGainers||[]).slice(0,10))
-    html += `<div class="scanner-row"><span class="scanner-sym">${s.symbol}</span><span class="scanner-name">${(s.name||'').slice(0,20)}</span><span class="scanner-tag">${s.tag}</span><span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg up">+${s.changePct}%</span></div>`;
+    // Task 4: esc on symbol/name/tag
+    html += `<div class="scanner-row"><span class="scanner-sym">${esc(s.symbol)}</span><span class="scanner-name">${esc((s.name||'').slice(0,20))}</span><span class="scanner-tag">${esc(s.tag)}</span>${volBadge(s)}<span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg up">+${s.changePct}%</span></div>`;
   html += '</div>';
   html += `<div class="scanner-card"><div class="scanner-card-header">🔴 Top Losers — War Universe</div>`;
   for (const s of (data.topLosers||[]).slice(0,7))
-    html += `<div class="scanner-row"><span class="scanner-sym">${s.symbol}</span><span class="scanner-name">${(s.name||'').slice(0,20)}</span><span class="scanner-tag">${s.tag}</span><span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg down">${s.changePct}%</span></div>`;
+    html += `<div class="scanner-row"><span class="scanner-sym">${esc(s.symbol)}</span><span class="scanner-name">${esc((s.name||'').slice(0,20))}</span><span class="scanner-tag">${esc(s.tag)}</span>${volBadge(s)}<span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg down">${s.changePct}%</span></div>`;
   html += '</div></div>';
   html += '<div class="section-label" style="margin-top:1.4rem;">Sector performance</div><div class="sector-grid">';
   for (const [tag, items] of Object.entries(data.byTag||{})) {
     const avg = items.reduce((s,i)=>s+i.changePct,0)/items.length;
     const color = avg >= 0 ? '#2ecc71' : '#e74c3c';
     const barW = Math.min(Math.abs(avg)*10,100);
-    html += `<div class="sector-bar-card"><div class="sector-name">${tag}</div><div class="sector-avg" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sector-tickers">${items.map(i=>i.symbol).join(' · ')}</div><div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barW}%;background:${color}"></div></div></div>`;
+    html += `<div class="sector-bar-card"><div class="sector-name">${esc(tag)}</div><div class="sector-avg" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sector-tickers">${items.map(i=>esc(i.symbol)).join(' · ')}</div><div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barW}%;background:${color}"></div></div></div>`;
   }
   html += '</div>';
   const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
@@ -502,17 +516,24 @@ function renderScanner(data, el) {
   el.innerHTML = html;
 }
 
-async function loadNews() {
+async function loadNews(force = false) {
   const el = document.getElementById('newsContent');
+  // Task 9: serve from cache unless force refresh
+  if (!force) {
+    const cached = getCached('news', 5 * 60 * 1000);
+    if (cached) { renderNews(cached, el); return; }
+  }
   el.innerHTML = '<div style="font-size:11px;color:#555;padding:12px;"><span class="spinner"></span> Fetching macro headlines...</div>';
   try {
     const r = await fetch(NEWS_API);
     if (!r.ok) throw new Error('News API error ' + r.status);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
+    setCache('news', data);
     renderNews(data, el);
   } catch (err) {
-    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">News error: ${err.message}</div>`;
+    console.warn('[ui] news failed:', err.message);
+    el.innerHTML = `<div style="font-size:11px;color:#e74c3c;padding:12px;">News error: ${esc(err.message)}</div>`;
   }
 }
 
@@ -525,7 +546,8 @@ function renderNews(data, el) {
     const pc = pillMap[a.tag]||'pill-macro';
     const lb = labelMap[a.tag]||a.tag;
     const lk = a.url ? `href="${a.url}" target="_blank"` : '';
-    html += `<div class="news-item"><span class="news-tag-pill ${pc}">${lb}</span><div class="news-content"><div class="news-title"><a ${lk} style="color:inherit;text-decoration:none;">${a.title}</a></div><div class="news-meta">${a.source} · ${time}</div></div></div>`;
+    // Task 4: esc on title and source
+    html += `<div class="news-item"><span class="news-tag-pill ${pc}">${lb}</span><div class="news-content"><div class="news-title"><a ${lk} style="color:inherit;text-decoration:none;">${esc(a.title)}</a></div><div class="news-meta">${esc(a.source)} · ${time}</div></div></div>`;
   }
   html += '</div>';
   const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
@@ -533,17 +555,7 @@ function renderNews(data, el) {
   el.innerHTML = html;
 }
 
-// ── MASTER BRIEF: Elite PM system prompt + inline render ────────────────────
-function closeBrief() { document.getElementById('briefOutput').style.display = 'none'; }
-
-function renderBriefMarkdown(raw) {
-  return raw
-    .replace(/^#{1,3}\s+(.+)$/gm, '<span class="section-h">$1</span>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em style="color:#aaa">$1</em>')
-    .replace(/^[-•]\s+/gm, '  · ');
-}
-
+// ── MASTER BRIEF: Elite PM system prompt → opens in Claude.ai ───────────────
 async function openMasterBrief() {
   const btn = document.getElementById('briefBtn');
   const spinner = document.getElementById('briefSpinner');
@@ -726,11 +738,13 @@ async function loadAll() {
   dot.className = 'status-dot dot-loading';
   ts.textContent = 'Fetching live prices...';
   renderAnalysisButtons();
+  await loadConfig();
   try {
     await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
     dot.className = 'status-dot dot-live';
     ts.textContent = 'Live · ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
-  } catch {
+  } catch (err) {
+    console.warn('[ui] loadAll failed:', err.message);
     dot.className = 'status-dot dot-error';
     ts.textContent = 'Error — click Refresh';
   }
