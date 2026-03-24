@@ -137,6 +137,7 @@ body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; ba
       <span id="liveIndicator" style="font-size:9px;font-weight:700;letter-spacing:0.06em;color:#555;font-family:'JetBrains Mono',monospace;">—</span>
       <span class="ts" id="ts">Connecting...</span>
       <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+      <button class="refresh-btn" onclick="syncToServer()" title="Push portfolio state to server" style="border-color:#2ecc71;color:#2ecc71;">☁ Sync</button>
     </div>
   </div>
 
@@ -237,7 +238,7 @@ body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; ba
   </div>
 
   <!-- Task 7: keyboard hint in footer -->
-  <p class="note">Keys: 1-3 tabs · R refresh · B brief · Esc close | Live data: Yahoo Finance · RSS: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app</p>
+  <p class="note">Keys: 1-3 tabs · R refresh · B brief · S sync · Esc close | Live data: Yahoo Finance · RSS: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app</p>
 
   <!-- Task 2e: full-screen chart modal -->
   <div id="chartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;padding:2rem;">
@@ -271,7 +272,7 @@ import { createChart, ColorType, LineStyle } from 'https://esm.sh/lightweight-ch
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
-const CONFIG_API = 'https://war-portfolio-api.vercel.app/api/config';
+const STATE_API = location.origin + '/api/state';
 const HISTORY_API = location.origin + '/api/history';
 
 // XSS sanitization
@@ -306,16 +307,64 @@ document.addEventListener('DOMContentLoaded', () => {
 let DEFAULT_POSITIONS = [];
 let DEFAULT_WATCHLIST = [];
 
+// ── Server-synced state ─────────────────────────────────────────────────────
+// PIN is prompted once per session, cached in sessionStorage
+function getPin() {
+  let pin = sessionStorage.getItem('warPin');
+  if (!pin) {
+    pin = prompt('Enter your War Portfolio PIN:');
+    if (pin) sessionStorage.setItem('warPin', pin);
+  }
+  return pin || '';
+}
+
 async function loadConfig() {
   try {
-    const r = await fetch(CONFIG_API);
+    const r = await fetch(STATE_API);
     const cfg = await r.json();
     DEFAULT_POSITIONS = cfg.positions || [];
     DEFAULT_WATCHLIST = cfg.watchlist || [];
     if (cfg.cash) document.getElementById('cashDisplay').textContent = cfg.cash;
     if (cfg.cashSub) document.getElementById('cashSub').textContent = cfg.cashSub;
+    // Always trust server as source of truth
+    if (DEFAULT_POSITIONS.length > 0) {
+      localStorage.setItem('warPositions', JSON.stringify(DEFAULT_POSITIONS));
+    }
+    if (DEFAULT_WATCHLIST.length > 0) {
+      localStorage.setItem('warWatchlist', JSON.stringify(DEFAULT_WATCHLIST));
+    }
   } catch (e) {
-    console.warn('[ui] config load failed:', e.message);
+    console.warn('[ui] state load failed:', e.message);
+  }
+}
+
+// Push current state to server
+async function syncToServer() {
+  try {
+    const pin = getPin();
+    if (!pin) { console.warn('[sync] No PIN — skipping server sync'); return; }
+    const positions = JSON.parse(localStorage.getItem('warPositions') || '[]');
+    const watchlist = JSON.parse(localStorage.getItem('warWatchlist') || '[]');
+    const cash = document.getElementById('cashDisplay')?.textContent || '~$0';
+    const cashSub = document.getElementById('cashSub')?.textContent || '';
+    const r = await fetch(STATE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pin': pin },
+      body: JSON.stringify({ positions, watchlist, cash, cashSub }),
+    });
+    if (r.ok) {
+      console.log('[sync] ✓ State saved to server');
+      showToast('✓ Portfolio synced to server');
+    } else {
+      const err = await r.json();
+      console.warn('[sync] Server rejected:', err.error);
+      if (r.status === 403) {
+        sessionStorage.removeItem('warPin');
+        showToast('⚠ Wrong PIN — try again on next save');
+      }
+    }
+  } catch (err) {
+    console.warn('[sync] Push failed:', err.message);
   }
 }
 
@@ -533,6 +582,7 @@ async function addToWatchlist() {
     document.getElementById('w-sym').value = '';
     document.getElementById('w-note').value = '';
     await loadWatchlist();
+    syncToServer(); // Push to server
     setTimeout(() => { document.getElementById('watchAddForm').style.display = 'none'; }, 1500);
   } catch(e) {
     status.textContent = 'Could not find ticker: ' + symRaw;
@@ -544,6 +594,7 @@ function removeFromWatchlist(sym) {
   const items = loadWatchlistItems().filter(i => i.sym !== sym);
   saveWatchlistItems(items);
   loadWatchlist();
+  syncToServer(); // Push to server
 }
 
 const MACRO = [
@@ -1112,6 +1163,7 @@ document.addEventListener('keydown', (e) => {
     case '2': switchTab('scanner', null); break;
     case '3': switchTab('news', null); break;
     case 'r': case 'R': e.preventDefault(); loadAll(); showToast('↻ Refreshing all data...'); break;
+    case 's': case 'S': e.preventDefault(); syncToServer(); break;
     case 'b': case 'B': e.preventDefault(); openMasterBrief(); break;
     case 'Escape': closeChartModal(); break;
   }
@@ -1184,6 +1236,7 @@ function savePositions() {
   savePositionsToStorage(updated);
   document.getElementById('editPanel').classList.remove('open');
   loadAll();
+  syncToServer(); // Push to server so it works everywhere
 }
 
 function openClaude(msg) { window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank'); }
@@ -1229,6 +1282,7 @@ window.openChartModal = openChartModal;
 window.closeChartModal = closeChartModal;
 window.loadScanner = loadScanner;
 window.loadNews = loadNews;
+window.syncToServer = syncToServer;
 
 loadAll();
 </script>
