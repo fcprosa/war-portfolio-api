@@ -4,27 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>War Portfolio</title>
+<!-- Task 9: Custom fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #f0f0f0; padding: 1.5rem; min-height: 100vh; }
+/* Task 9a: DM Sans body font */
+body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: #111; color: #f0f0f0; padding: 1.5rem; min-height: 100vh; }
 .dash { max-width: 1100px; margin: 0 auto; }
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
 .header h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: #ccc; }
-.ts { font-size: 11px; color: #555; }
+/* Task 9a: Mono fonts on financial numbers */
+.ts, .card-price, .card-change, .macro-val, .macro-sub, .total-val, .pnl-line, .scanner-chg, .scanner-sym, .sector-avg, .card-ticker { font-family: 'JetBrains Mono', monospace; }
 .tabs { display: flex; gap: 4px; margin-bottom: 1.2rem; border-bottom: 0.5px solid #2a2a2a; }
 .tab { font-size: 11px; padding: 6px 16px; border-radius: 8px 8px 0 0; border: 0.5px solid transparent; background: transparent; color: #555; cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; transition: all 0.15s; }
 .tab:hover { color: #aaa; }
 .tab.active { background: #1a1a1a; border-color: #2a2a2a; border-bottom-color: #111; color: #fff; }
-.tab-panel { display: none; }
+/* Task 9d: smooth tab fade */
+.tab-panel { display: none; animation: fadeIn 0.2s ease-out; }
 .tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .section-label { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem; display: flex; align-items: center; justify-content: space-between; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; }
+/* Task 9b: card entry animation */
+.card { background: #1a1a1a; border-radius: 10px; padding: 0.9rem 1rem; position: relative; border: 0.5px solid #2a2a2a; animation: cardIn 0.3s ease-out both; transition: border-color 0.15s, transform 0.15s; }
+.card:hover { border-color: #333; transform: translateY(-1px); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.cards .card:nth-child(1) { animation-delay: 0s; }
+.cards .card:nth-child(2) { animation-delay: 0.04s; }
+.cards .card:nth-child(3) { animation-delay: 0.08s; }
+.cards .card:nth-child(4) { animation-delay: 0.12s; }
+.cards .card:nth-child(5) { animation-delay: 0.16s; }
+.cards .card:nth-child(6) { animation-delay: 0.2s; }
+.cards .card:nth-child(7) { animation-delay: 0.24s; }
+.cards .card:nth-child(8) { animation-delay: 0.28s; }
+.cards .card:nth-child(9) { animation-delay: 0.32s; }
+.cards .card:nth-child(10) { animation-delay: 0.36s; }
+.cards .card:nth-child(11) { animation-delay: 0.4s; }
 .card-ticker { font-size: 14px; font-weight: 600; padding-right: 44px; color: #fff; }
 .card-name { font-size: 10px; color: #555; margin-top: 2px; margin-bottom: 10px; line-height: 1.3; }
 .card-price { font-size: 21px; font-weight: 500; color: #fff; letter-spacing: -0.5px; }
 .card-change { font-size: 12px; margin-top: 4px; }
 .card-sub { font-size: 10px; color: #555; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #222; line-height: 1.4; }
+/* Task 2: mini chart */
+.mini-chart { border-radius: 0 0 8px 8px; overflow: hidden; }
 .badge { position: absolute; top: 9px; right: 9px; font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
 .badge-hold { background: #0d2a45; color: #4a9eff; }
 .badge-watch { background: #2d1f00; color: #d4900a; }
@@ -49,14 +73,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dot-error { background: #e74c3c; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 .war-bar { background: #1e0a0a; border: 0.5px solid #3d1515; border-radius: 8px; padding: 0.55rem 1rem; font-size: 11px; color: #e74c3c; margin-bottom: 1rem; }
-.brief-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; padding: 13px 18px; border-radius: 10px; border: 0.5px solid #2ecc71; background: #0a2518; color: #2ecc71; cursor: pointer; margin-bottom: 0.6rem; transition: all 0.15s; }
-.brief-btn:hover { background: #0d3020; }
+/* Task 9c: brief button glow */
+.brief-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; padding: 13px 18px; border-radius: 10px; border: 0.5px solid #2ecc71; background: #0a2518; color: #2ecc71; cursor: pointer; margin-bottom: 0.6rem; transition: all 0.2s ease; box-shadow: 0 0 20px rgba(46,204,113,0.08); }
+.brief-btn:hover { background: #0d3020; box-shadow: 0 0 30px rgba(46,204,113,0.18); border-color: #3ddb80; }
 .brief-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .brief-btn .brief-meta { font-size: 10px; color: #555; font-weight: 400; margin-left: auto; }
-.ask-btn { display: block; width: 100%; text-align: left; font-size: 12px; padding: 9px 13px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; margin-top: 7px; }
-.ask-btn:hover { background: #1a1a1a; color: #ccc; }
 .scanner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 600px) { .scanner-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .scanner-grid { grid-template-columns: 1fr; } #analyticsPanel { grid-template-columns: 1fr; } }
 .scanner-card { background: #1a1a1a; border-radius: 10px; border: 0.5px solid #2a2a2a; overflow: hidden; }
 .scanner-card-header { font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; border-bottom: 0.5px solid #222; }
 .scanner-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 0.5px solid #1e1e1e; gap: 8px; }
@@ -66,13 +89,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .scanner-tag { font-size: 8px; color: #666; background: #1e1e1e; border: 0.5px solid #2a2a2a; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
 .scanner-chg { font-size: 13px; font-weight: 600; min-width: 54px; text-align: right; }
 .scanner-vol { font-size: 10px; color: #555; min-width: 40px; text-align: right; }
-.sector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 0.6rem; }
-.sector-bar-card { background: #1a1a1a; border-radius: 8px; border: 0.5px solid #2a2a2a; padding: 10px 12px; }
-.sector-name { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-.sector-avg { font-size: 16px; font-weight: 500; }
-.sector-tickers { font-size: 9px; color: #444; margin-top: 3px; }
-.sector-bar-bg { height: 3px; background: #222; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-.sector-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
 .news-list { display: flex; flex-direction: column; gap: 6px; }
 .news-item { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 8px; padding: 10px 13px; display: flex; gap: 10px; align-items: flex-start; }
 .news-tag-pill { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
@@ -100,13 +116,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .note { font-size: 10px; color: #444; margin-top: 1.2rem; font-style: italic; }
 .spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid #333; border-top-color: #2ecc71; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Task 2: range buttons */
+.range-btn { font-size: 10px; padding: 4px 10px; border-radius: 4px; border: 0.5px solid #333; background: transparent; color: #555; cursor: pointer; font-weight: 600; font-family: 'JetBrains Mono', monospace; transition: all 0.15s; }
+.range-btn:hover { color: #aaa; background: #1a1a1a; }
+.range-btn.active { background: #1a1a1a; color: #fff; border-color: #444; }
+/* Task 9f: scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
 </style>
 </head>
 <body>
 <div class="dash">
+  <!-- Task 8: market status + Task 3: live indicator in header -->
   <div class="header">
     <h2><span class="status-dot dot-loading" id="dot"></span>War Portfolio · Day <span id="warDay">—</span></h2>
     <div style="display:flex;gap:10px;align-items:center;">
+      <span id="marketStatus" style="font-size:9px;font-weight:600;letter-spacing:0.06em;font-family:'JetBrains Mono',monospace;"></span>
+      <span id="liveIndicator" style="font-size:9px;font-weight:700;letter-spacing:0.06em;color:#555;font-family:'JetBrains Mono',monospace;">—</span>
       <span class="ts" id="ts">Connecting...</span>
       <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
     </div>
@@ -122,22 +150,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div style="text-align:right;">
       <div class="total-label">Uninvested cash</div>
-      <div style="font-size:22px;font-weight:500;color:#fff;" id="cashDisplay">~$645</div>
+      <div style="font-size:22px;font-weight:500;color:#fff;font-family:'JetBrains Mono',monospace;" id="cashDisplay">~$645</div>
       <div style="font-size:10px;color:#444;margin-top:3px;" id="cashSub">$146 Revolut cash + ~$498 outside</div>
     </div>
   </div>
 
+  <!-- Task 6c: updated brief button -->
   <button class="brief-btn" id="briefBtn" onclick="openMasterBrief()">
     <span id="briefSpinner" style="display:none;"><span class="spinner"></span></span>
-    ⚡ BRIEF CLAUDE — Full Market Intelligence
-    <span class="brief-meta" id="briefMeta">scanner + news + positions → opens in Claude.ai</span>
+    ⚡ GENERATE BRIEF — Copy to Clipboard + Open Claude
+    <span class="brief-meta" id="briefMeta">scanner + news + positions → Claude Opus 4.6</span>
   </button>
 
+  <!-- Task 6d: removed Quick Analysis tab -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('portfolio', event)">Portfolio</button>
     <button class="tab" onclick="switchTab('scanner', event)">🔍 Market Scanner</button>
     <button class="tab" onclick="switchTab('news', event)">📰 News Feed</button>
-    <button class="tab" onclick="switchTab('analysis', event)">Quick Analysis</button>
   </div>
 
   <div class="tab-panel active" id="tab-portfolio">
@@ -184,6 +213,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="macro-card"><div class="macro-label">S&P 500</div><div class="macro-val" id="m-spy">—</div><div class="macro-sub" id="m-spy-s" style="color:#555">US equities</div></div>
       <div class="macro-card"><div class="macro-label">DAX</div><div class="macro-val" id="m-dax">—</div><div class="macro-sub" id="m-dax-s" style="color:#555">EU defense hub</div></div>
     </div>
+
+    <!-- Task 5: portfolio analytics -->
+    <div class="section-label">Portfolio analytics</div>
+    <div id="analyticsPanel" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+    <div id="pnlTimeline" style="margin-top:12px;"></div>
   </div>
 
   <div class="tab-panel" id="tab-scanner">
@@ -202,45 +236,63 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div id="newsContent"><div style="font-size:11px;color:#444;padding:8px;">Click Refresh or switch to this tab to load...</div></div>
   </div>
 
-  <div class="tab-panel" id="tab-analysis">
-    <div class="section-label">Quick analysis → Claude</div>
-    <div id="analysisButtons"></div>
-  </div>
+  <!-- Task 7: keyboard hint in footer -->
+  <p class="note">Keys: 1-3 tabs · R refresh · B brief · Esc close | Live data: Yahoo Finance · RSS: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app</p>
 
-  <p class="note">Live data: Yahoo Finance · RSS feeds: Reuters, BBC, CNBC, Al Jazeera · war-portfolio-api.vercel.app · Brief: claude-sonnet-4-6 (Druckenmiller persona)</p>
+  <!-- Task 2e: full-screen chart modal -->
+  <div id="chartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;padding:2rem;">
+    <div style="max-width:960px;margin:0 auto;height:100%;display:flex;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <span id="modalTicker" style="font-size:20px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace;"></span>
+          <span id="modalName" style="font-size:12px;color:#555;margin-left:10px;"></span>
+          <span id="modalPrice" style="font-size:14px;color:#888;margin-left:10px;font-family:'JetBrains Mono',monospace;"></span>
+        </div>
+        <div style="display:flex;gap:3px;align-items:center;">
+          <button class="range-btn" data-range="5d" data-interval="15m">1D</button>
+          <button class="range-btn" data-range="5d" data-interval="1d">5D</button>
+          <button class="range-btn active" data-range="1mo" data-interval="1d">1M</button>
+          <button class="range-btn" data-range="3mo" data-interval="1d">3M</button>
+          <button class="range-btn" data-range="6mo" data-interval="1d">6M</button>
+          <button class="range-btn" data-range="1y" data-interval="1wk">1Y</button>
+          <button class="range-btn" data-range="5y" data-interval="1mo">5Y</button>
+          <button onclick="closeChartModal()" style="background:transparent;border:0.5px solid #333;color:#555;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;margin-left:16px;">✕ Close</button>
+        </div>
+      </div>
+      <div id="modalChartContainer" style="flex:1;min-height:0;border-radius:10px;overflow:hidden;"></div>
+    </div>
+  </div>
 </div>
 
-<script>
+<!-- Task 2a: ES module script -->
+<script type="module">
+import { createChart, ColorType, LineStyle } from 'https://esm.sh/lightweight-charts@4.2.1';
+
 const PROXY = 'https://war-portfolio-api.vercel.app/api/quote';
 const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
 const CONFIG_API = 'https://war-portfolio-api.vercel.app/api/config';
+const HISTORY_API = location.origin + '/api/history';
 
-// Task 4: XSS sanitization helper
+// XSS sanitization
 function esc(str) {
   const el = document.createElement('div');
   el.textContent = str || '';
   return el.innerHTML;
 }
 
-// Task 9: in-memory cache with TTL
+// In-memory cache
 const _cache = {};
 function getCached(key, ttlMs) {
   const entry = _cache[key];
   if (entry && (Date.now() - entry.ts) < ttlMs) return entry.data;
   return null;
 }
-function setCache(key, data) {
-  _cache[key] = { data, ts: Date.now() };
-}
+function setCache(key, data) { _cache[key] = { data, ts: Date.now() }; }
 
-// ── WAR DAY COUNTER: Feb 28, 2026 = Day 1 ──────────────────────────────────
+// War day
 const WAR_START = new Date('2026-02-28T00:00:00');
-function getWarDay() {
-  const now = new Date();
-  const diff = Math.floor((now - WAR_START) / (1000 * 60 * 60 * 24));
-  return diff + 1; // Day 1 = Feb 28
-}
+function getWarDay() { return Math.floor((new Date() - WAR_START) / 86400000) + 1; }
 const WAR_DAY = getWarDay();
 document.title = `War Portfolio · Day ${WAR_DAY}`;
 document.addEventListener('DOMContentLoaded', () => {
@@ -250,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (wdb) wdb.textContent = WAR_DAY;
 });
 
-// Task 5: defaults loaded from /api/config (set via Vercel env vars)
+// Config
 let DEFAULT_POSITIONS = [];
 let DEFAULT_WATCHLIST = [];
 
@@ -267,6 +319,181 @@ async function loadConfig() {
   }
 }
 
+// ── TASK 2c: Mini chart renderer ────────────────────────────────────────────
+async function renderMiniChart(containerId, symbol, range = '1mo') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.style.height = '100px';
+  container.style.marginTop = '6px';
+  try {
+    const r = await fetch(`${HISTORY_API}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=1d`);
+    const data = await r.json();
+    if (!data.candles?.length) return;
+    const chart = createChart(container, {
+      width: container.clientWidth, height: 100,
+      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#555', fontSize: 9 },
+      grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+      rightPriceScale: { visible: false },
+      timeScale: { visible: false },
+      crosshair: {
+        vertLine: { color: '#333', width: 1, style: LineStyle.Dashed, labelVisible: false },
+        horzLine: { color: '#333', width: 1, style: LineStyle.Dashed, labelVisible: false },
+      },
+      handleScroll: false, handleScale: false,
+    });
+    const first = data.candles[0].close;
+    const last = data.candles[data.candles.length - 1].close;
+    const color = last >= first ? '#2ecc71' : '#e74c3c';
+    const series = chart.addAreaSeries({
+      lineColor: color, topColor: color + '25', bottomColor: color + '03',
+      lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false,
+      crosshairMarkerVisible: true, crosshairMarkerRadius: 3,
+    });
+    series.setData(data.candles.map(c => ({ time: c.time, value: c.close })));
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
+  } catch (err) {
+    console.warn(`[chart] ${symbol}:`, err.message);
+  }
+}
+
+// ── TASK 2e: Full-screen chart modal ────────────────────────────────────────
+let _modalChart = null;
+let _modalSymbol = null;
+
+function openChartModal(symbol, name, currentPrice) {
+  _modalSymbol = symbol;
+  document.getElementById('modalTicker').textContent = symbol;
+  document.getElementById('modalName').textContent = name || '';
+  document.getElementById('modalPrice').textContent = currentPrice || '';
+  document.getElementById('chartModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  loadModalChart(symbol, '1mo', '1d');
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.range-btn[data-range="1mo"]')?.classList.add('active');
+}
+
+function closeChartModal() {
+  document.getElementById('chartModal').style.display = 'none';
+  document.body.style.overflow = '';
+  if (_modalChart) { _modalChart.remove(); _modalChart = null; }
+}
+
+async function loadModalChart(symbol, range, interval) {
+  const container = document.getElementById('modalChartContainer');
+  if (_modalChart) { _modalChart.remove(); _modalChart = null; }
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;"><span class="spinner"></span><span style="font-size:11px;color:#555;margin-left:8px;">Loading chart...</span></div>';
+  try {
+    const r = await fetch(`${HISTORY_API}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}`);
+    const data = await r.json();
+    if (!data.candles?.length) {
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#555;font-size:12px;">No data available</div>';
+      return;
+    }
+    container.innerHTML = '';
+    _modalChart = createChart(container, {
+      width: container.clientWidth, height: container.clientHeight,
+      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#666', fontSize: 11 },
+      grid: { vertLines: { color: '#1a1a1a' }, horzLines: { color: '#1a1a1a' } },
+      rightPriceScale: { borderColor: '#1a1a1a', scaleMargins: { top: 0.05, bottom: 0.2 } },
+      timeScale: { borderColor: '#1a1a1a', timeVisible: interval !== '1d' && interval !== '1wk' && interval !== '1mo' },
+      crosshair: {
+        mode: 0,
+        vertLine: { color: '#444', labelBackgroundColor: '#1a1a1a' },
+        horzLine: { color: '#444', labelBackgroundColor: '#1a1a1a' },
+      },
+    });
+    const isDailyOrLonger = ['1d', '1wk', '1mo'].includes(interval);
+    if (isDailyOrLonger) {
+      const series = _modalChart.addCandlestickSeries({
+        upColor: '#2ecc71', downColor: '#e74c3c',
+        borderUpColor: '#2ecc71', borderDownColor: '#e74c3c',
+        wickUpColor: '#2ecc7188', wickDownColor: '#e74c3c88',
+      });
+      series.setData(data.candles);
+    } else {
+      const first = data.candles[0].close;
+      const last = data.candles[data.candles.length - 1].close;
+      const color = last >= first ? '#2ecc71' : '#e74c3c';
+      const series = _modalChart.addAreaSeries({
+        lineColor: color, topColor: color + '25', bottomColor: color + '03', lineWidth: 2,
+      });
+      series.setData(data.candles.map(c => ({ time: c.time, value: c.close })));
+    }
+    const volSeries = _modalChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'volume' });
+    _modalChart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    volSeries.setData(data.candles.map(c => ({
+      time: c.time, value: c.volume,
+      color: c.close >= c.open ? '#2ecc7115' : '#e74c3c15',
+    })));
+    _modalChart.timeScale().fitContent();
+    new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      _modalChart?.applyOptions({ width, height });
+    }).observe(container);
+  } catch (err) {
+    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e74c3c;font-size:11px;">Chart error: ${esc(err.message)}</div>`;
+  }
+}
+
+// Range button handler
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('range-btn') && _modalSymbol) {
+    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    loadModalChart(_modalSymbol, e.target.dataset.range, e.target.dataset.interval);
+  }
+});
+
+// ── TASK 3: WebSocket live prices ────────────────────────────────────────────
+let _ws = null;
+const _wsCallbacks = {};
+
+async function initLivePrices() {
+  try {
+    const r = await fetch(location.origin + '/api/ws-token');
+    const { token } = await r.json();
+    if (!token) { console.log('[ws] No Finnhub key — live prices disabled'); return; }
+    _ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
+    _ws.onopen = () => {
+      console.log('[ws] Finnhub connected');
+      for (const sym of Object.keys(_wsCallbacks)) {
+        _ws.send(JSON.stringify({ type: 'subscribe', symbol: sym }));
+      }
+      const el = document.getElementById('liveIndicator');
+      if (el) { el.textContent = 'LIVE'; el.style.color = '#2ecc71'; }
+    };
+    _ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'trade' && msg.data) {
+        const latest = {};
+        for (const trade of msg.data) latest[trade.s] = trade.p;
+        for (const [sym, price] of Object.entries(latest)) {
+          if (_wsCallbacks[sym]) _wsCallbacks[sym](price);
+        }
+      }
+    };
+    _ws.onclose = () => {
+      console.warn('[ws] Disconnected — reconnecting in 5s');
+      const el = document.getElementById('liveIndicator');
+      if (el) { el.textContent = 'RECONNECTING'; el.style.color = '#f39c12'; }
+      setTimeout(initLivePrices, 5000);
+    };
+    _ws.onerror = () => {};
+  } catch (err) {
+    console.warn('[ws] Live prices unavailable:', err.message);
+  }
+}
+
+function subscribeLivePrice(symbol, callback) {
+  if (symbol.includes('.') || symbol.includes('=') || symbol.startsWith('^')) return;
+  _wsCallbacks[symbol] = callback;
+  if (_ws?.readyState === WebSocket.OPEN) {
+    _ws.send(JSON.stringify({ type: 'subscribe', symbol }));
+  }
+}
+
+// ── WATCHLIST / POSITIONS helpers ───────────────────────────────────────────
 function loadWatchlistItems() {
   try { const s = localStorage.getItem('warWatchlist'); return s ? JSON.parse(s) : DEFAULT_WATCHLIST; } catch { return DEFAULT_WATCHLIST; }
 }
@@ -328,11 +555,15 @@ const MACRO = [
   { sym: '^GDAXI',   id: 'm-dax',  sid: 'm-dax-s',  prefix: '',  dec: 0 },
 ];
 
+// Task 7: updated switchTab handles null event
 function switchTab(name, e) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  if (e && e.target) e.target.classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const tabMap = { portfolio: 0, scanner: 1, news: 2 };
+  if (tabMap[name] !== undefined && tabs[tabMap[name]]) tabs[tabMap[name]].classList.add('active');
+  if (e?.target) e.target.classList.add('active');
+  document.getElementById('tab-' + name)?.classList.add('active');
   if (name === 'scanner') loadScanner();
   if (name === 'news') loadNews();
 }
@@ -363,7 +594,6 @@ async function loadPositions() {
   let html = '', totalVal = 0, totalCost = 0, hasData = false;
   _positionData = [];
 
-  // Task 3: parallel fetches instead of sequential for...await
   const quotes = await Promise.allSettled(
     positions.map(p => getQuote(p.sym).then(q => ({ pos: p, quote: q })))
   );
@@ -380,6 +610,8 @@ async function loadPositions() {
       const sign = pnl >= 0 ? '+' : '';
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
       const displayPrice = priceAdj.toFixed(2);
+      const chartId = 'chart-' + p.sym.replace(/[^a-zA-Z0-9]/g, '_');
+      const priceId = 'live-' + p.sym.replace(/[^a-zA-Z0-9]/g, '_');
       totalVal += posVal; totalCost += cost; hasData = true;
       _positionData.push({
         ...p,
@@ -388,25 +620,45 @@ async function loadPositions() {
         posVal: posVal.toFixed(2),
         todayChg: q.chgPct != null ? (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + '%' : '—'
       });
-      // Task 4: esc() on user-facing text fields
+      // Task 2d: clickable ticker + mini chart container. Task 3c: live price id
       html += `<div class="card">
         <span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span>
-        <div class="card-ticker">${esc(p.display)}</div>
+        <div class="card-ticker" style="cursor:pointer;" onclick="openChartModal('${esc(p.sym)}','${esc(p.name)}','${cs}${displayPrice}')">${esc(p.display)}</div>
         <div class="card-name">${esc(p.name)}</div>
-        <div class="card-price">${cs}${displayPrice}</div>
+        <div class="card-price" id="${priceId}">${cs}${displayPrice}</div>
         <div class="card-change">Today: ${chgHtml(q.chgPct)}</div>
         <div class="card-sub">${p.shares} shares · ${esc(p.thesis)}<br><span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pnlPct.toFixed(2)}% P&L</span></div>
+        <div id="${chartId}" class="mini-chart"></div>
       </div>`;
     } else {
-      // Task 6: log the error; Task 4: esc fields
       console.warn('[ui] quote failed:', result.reason?.message);
       const p = positions[quotes.indexOf(result)];
       if (p) {
-        html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${esc(p.display||p.sym)}</div><div class="card-name">${esc(p.name||'')}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(p.thesis||'')}</div></div>`;
+        const chartId = 'chart-' + p.sym.replace(/[^a-zA-Z0-9]/g, '_');
+        html += `<div class="card"><span class="badge ${badgeCls(p.badge)}">${badgeLbl(p.badge)}</span><div class="card-ticker">${esc(p.display||p.sym)}</div><div class="card-name">${esc(p.name||'')}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(p.thesis||'')}</div><div id="${chartId}" class="mini-chart"></div></div>`;
       }
     }
   }
   document.getElementById('posGrid').innerHTML = html;
+
+  // Task 2d: render mini charts
+  for (const p of positions) {
+    renderMiniChart('chart-' + p.sym.replace(/[^a-zA-Z0-9]/g, '_'), p.sym, '1mo');
+  }
+
+  // Task 3c: subscribe live prices
+  for (const p of _positionData) {
+    const priceId = 'live-' + p.sym.replace(/[^a-zA-Z0-9]/g, '_');
+    subscribeLivePrice(p.sym, (livePrice) => {
+      const el = document.getElementById(priceId);
+      if (!el) return;
+      const prev = parseFloat(el.textContent.replace(/[^0-9.]/g, ''));
+      el.textContent = '$' + livePrice.toFixed(2);
+      el.style.color = livePrice > prev ? '#2ecc71' : livePrice < prev ? '#e74c3c' : '#fff';
+      setTimeout(() => { el.style.color = '#fff'; }, 800);
+    });
+  }
+
   if (hasData && totalCost > 0) {
     const pnl = totalVal - totalCost;
     const pct = (pnl / totalCost) * 100;
@@ -414,39 +666,44 @@ async function loadPositions() {
     document.getElementById('totalVal').textContent = '$' + totalVal.toFixed(2);
     document.getElementById('pnlLine').innerHTML = `<span class="${pnl >= 0 ? 'up' : 'down'}">${sign}${pct.toFixed(2)}% all-time P&L</span>`;
   }
+
+  // Task 5: save snapshot + render analytics
+  if (hasData && totalVal > 0) saveDailySnapshot(totalVal);
+  renderAllocation(_positionData);
+  renderPnLTimeline();
 }
 
 async function loadWatchlist() {
   const items = loadWatchlistItems();
   let html = '';
-
-  // Task 3: parallel fetches
   const quotes = await Promise.allSettled(
     items.map(w => getQuote(w.sym).then(q => ({ item: w, quote: q })))
   );
-
   for (const result of quotes) {
     if (result.status === 'fulfilled') {
       const { item: w, quote: q } = result.value;
       const priceAdj = q.currency === 'GBp' ? q.price / 100 : q.price;
       const cs = q.currency === 'GBp' ? '£' : currSym(q.currency);
       const rb = w.custom ? `<button onclick="removeFromWatchlist('${esc(w.sym)}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
-      // Task 4: esc on text fields
-      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price">${cs}${priceAdj.toFixed(2)}</div><div class="card-change">${chgHtml(q.chgPct)}</div><div class="card-sub" style="padding-right:${w.custom?'14px':'0'}">${esc(w.thesis)}</div>${rb}</div>`;
+      const chartId = 'chart-w-' + w.sym.replace(/[^a-zA-Z0-9]/g, '_');
+      html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker" style="cursor:pointer;" onclick="openChartModal('${esc(w.sym)}','${esc(w.name)}','${cs}${priceAdj.toFixed(2)}')">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price">${cs}${priceAdj.toFixed(2)}</div><div class="card-change">${chgHtml(q.chgPct)}</div><div class="card-sub" style="padding-right:${w.custom?'14px':'0'}">${esc(w.thesis)}</div>${rb}<div id="${chartId}" class="mini-chart"></div></div>`;
     } else {
       console.warn('[ui] quote failed:', result.reason?.message);
       const w = items[quotes.indexOf(result)];
       if (w) {
         const rb = w.custom ? `<button onclick="removeFromWatchlist('${esc(w.sym)}')" title="Remove" style="position:absolute;bottom:8px;right:8px;background:transparent;border:none;color:#333;cursor:pointer;font-size:14px;line-height:1;padding:0;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#333'">×</button>` : '';
-        html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(w.thesis)}</div>${rb}</div>`;
+        const chartId = 'chart-w-' + w.sym.replace(/[^a-zA-Z0-9]/g, '_');
+        html += `<div class="card" style="position:relative;"><span class="badge ${badgeCls(w.badge)}">${badgeLbl(w.badge)}</span><div class="card-ticker">${esc(w.display)}</div><div class="card-name">${esc(w.name)}</div><div class="card-price" style="color:#555">N/A</div><div class="card-sub">${esc(w.thesis)}</div>${rb}<div id="${chartId}" class="mini-chart"></div></div>`;
       }
     }
   }
   document.getElementById('watchGrid').innerHTML = html;
+  for (const w of items) {
+    renderMiniChart('chart-w-' + w.sym.replace(/[^a-zA-Z0-9]/g, '_'), w.sym, '1mo');
+  }
 }
 
 async function loadMacro() {
-  // Task 3: parallel fetches
   const quotes = await Promise.allSettled(MACRO.map(m => getQuote(m.sym).then(q => ({ m, q }))));
   for (const result of quotes) {
     if (result.status === 'fulfilled') {
@@ -465,7 +722,6 @@ async function loadMacro() {
 
 async function loadScanner(force = false) {
   const el = document.getElementById('scannerContent');
-  // Task 9: serve from cache unless force refresh
   if (!force) {
     const cached = getCached('scan', 5 * 60 * 1000);
     if (cached) { renderScanner(cached, el); return; }
@@ -487,38 +743,64 @@ async function loadScanner(force = false) {
 function renderScanner(data, el) {
   function cs(c) { return c === 'EUR' ? '€' : (c === 'GBp' || c === 'GBP') ? '£' : '$'; }
   function fmtPrice(s) { return cs(s.currency) + (s.currency === 'GBp' ? (s.price/100).toFixed(2) : s.price.toFixed(2)); }
-  // Task 10: volume spike badge
   function volBadge(s) {
     return s.volumeSpike && s.volumeSpike > 2
-      ? `<span style="color:#f39c12;font-size:9px;font-weight:700;">${s.volumeSpike}x vol</span>`
-      : '';
+      ? `<span style="color:#f39c12;font-size:9px;font-weight:700;">${s.volumeSpike}x vol</span>` : '';
   }
   let html = '<div class="scanner-grid">';
   html += `<div class="scanner-card"><div class="scanner-card-header">🟢 Top Gainers — War Universe</div>`;
   for (const s of (data.topGainers||[]).slice(0,10))
-    // Task 4: esc on symbol/name/tag
     html += `<div class="scanner-row"><span class="scanner-sym">${esc(s.symbol)}</span><span class="scanner-name">${esc((s.name||'').slice(0,20))}</span><span class="scanner-tag">${esc(s.tag)}</span>${volBadge(s)}<span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg up">+${s.changePct}%</span></div>`;
   html += '</div>';
   html += `<div class="scanner-card"><div class="scanner-card-header">🔴 Top Losers — War Universe</div>`;
   for (const s of (data.topLosers||[]).slice(0,7))
     html += `<div class="scanner-row"><span class="scanner-sym">${esc(s.symbol)}</span><span class="scanner-name">${esc((s.name||'').slice(0,20))}</span><span class="scanner-tag">${esc(s.tag)}</span>${volBadge(s)}<span class="scanner-vol" style="color:#888">${fmtPrice(s)}</span><span class="scanner-chg down">${s.changePct}%</span></div>`;
   html += '</div></div>';
-  html += '<div class="section-label" style="margin-top:1.4rem;">Sector performance</div><div class="sector-grid">';
-  for (const [tag, items] of Object.entries(data.byTag||{})) {
-    const avg = items.reduce((s,i)=>s+i.changePct,0)/items.length;
-    const color = avg >= 0 ? '#2ecc71' : '#e74c3c';
-    const barW = Math.min(Math.abs(avg)*10,100);
-    html += `<div class="sector-bar-card"><div class="sector-name">${esc(tag)}</div><div class="sector-avg" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sector-tickers">${items.map(i=>esc(i.symbol)).join(' · ')}</div><div class="sector-bar-bg"><div class="sector-bar-fill" style="width:${barW}%;background:${color}"></div></div></div>`;
-  }
-  html += '</div>';
+
+  // Task 4: sector heatmap
+  html += '<div class="section-label" style="margin-top:1.4rem;">Sector heatmap</div><div id="sectorHeatmap"></div>';
   const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
   html += `<p class="note" style="margin-top:1rem;">Last scan: ${ts} · ${data.fetched||(data.all||[]).length}/${data.total||43} tickers · via Yahoo Finance</p>`;
   el.innerHTML = html;
+  renderHeatmap(data, 'sectorHeatmap');
+}
+
+// Task 4: Sector heatmap
+function renderHeatmap(data, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || !data.byTag) return;
+  const sectors = Object.entries(data.byTag).map(([tag, items]) => {
+    const avg = items.reduce((s, i) => s + i.changePct, 0) / items.length;
+    const sorted = [...items].sort((a, b) => b.changePct - a.changePct);
+    return { tag, avg, count: items.length, items: sorted };
+  }).sort((a, b) => b.count - a.count);
+
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+  for (const sec of sectors) {
+    const intensity = Math.min(Math.abs(sec.avg) * 18, 85);
+    const bg = sec.avg >= 0 ? `rgba(46,204,113,${intensity/100})` : `rgba(231,76,60,${intensity/100})`;
+    const textColor = intensity > 35 ? '#fff' : '#aaa';
+    const sign = sec.avg >= 0 ? '+' : '';
+    const top = sec.items[0];
+    const bottom = sec.items[sec.items.length - 1];
+    html += `<div style="flex:${sec.count} 1 0;min-width:90px;background:${bg};border:0.5px solid #2a2a2a;border-radius:8px;padding:12px 14px;cursor:default;transition:transform 0.1s,box-shadow 0.15s;"
+      onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.3)'"
+      onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:11px;font-weight:700;color:${textColor};text-transform:uppercase;letter-spacing:0.05em;">${esc(sec.tag)}</div>
+      <div style="font-size:20px;font-weight:600;color:${textColor};margin-top:3px;font-family:'JetBrains Mono',monospace;">${sign}${sec.avg.toFixed(2)}%</div>
+      <div style="font-size:9px;color:${textColor};opacity:0.7;margin-top:6px;font-family:'JetBrains Mono',monospace;">
+        ▲ ${esc(top.symbol)} ${top.changePct >= 0 ? '+' : ''}${top.changePct.toFixed(1)}%<br>
+        ▼ ${esc(bottom.symbol)} ${bottom.changePct >= 0 ? '+' : ''}${bottom.changePct.toFixed(1)}%
+      </div>
+      <div style="font-size:8px;color:${textColor};opacity:0.35;margin-top:4px;">${sec.count} tickers</div>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 async function loadNews(force = false) {
   const el = document.getElementById('newsContent');
-  // Task 9: serve from cache unless force refresh
   if (!force) {
     const cached = getCached('news', 5 * 60 * 1000);
     if (cached) { renderNews(cached, el); return; }
@@ -545,137 +827,325 @@ function renderNews(data, el) {
     const time = new Date(a.publishedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
     const pc = pillMap[a.tag]||'pill-macro';
     const lb = labelMap[a.tag]||a.tag;
-    const lk = a.url ? `href="${a.url}" target="_blank"` : '';
-    // Task 4: esc on title and source
+    const lk = a.url ? `href="${esc(a.url)}" target="_blank"` : '';
     html += `<div class="news-item"><span class="news-tag-pill ${pc}">${lb}</span><div class="news-content"><div class="news-title"><a ${lk} style="color:inherit;text-decoration:none;">${esc(a.title)}</a></div><div class="news-meta">${esc(a.source)} · ${time}</div></div></div>`;
   }
   html += '</div>';
   const ts = new Date(data.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  html += `<p class="note" style="margin-top:1rem;">Last fetch: ${ts} · ${data.count} headlines · via NewsAPI</p>`;
+  html += `<p class="note" style="margin-top:1rem;">Last fetch: ${ts} · ${data.count} headlines · via RSS</p>`;
   el.innerHTML = html;
 }
 
-// ── MASTER BRIEF: Elite PM system prompt → opens in Claude.ai ───────────────
+// ── TASK 5a: Allocation donut ────────────────────────────────────────────────
+function renderAllocation(positionData) {
+  const el = document.getElementById('analyticsPanel');
+  if (!el || !positionData.length) return;
+  const total = positionData.reduce((s, p) => s + parseFloat(p.posVal || 0), 0);
+  if (total <= 0) return;
+  const colors = ['#2ecc71','#3498db','#e74c3c','#f39c12','#9b59b6','#1abc9c','#e67e22','#2980b9'];
+  let gradientParts = [], cumPct = 0;
+  const items = positionData.map((p, i) => {
+    const val = parseFloat(p.posVal || 0);
+    const pct = (val / total) * 100;
+    const start = cumPct; cumPct += pct;
+    gradientParts.push(`${colors[i % colors.length]} ${start.toFixed(1)}% ${cumPct.toFixed(1)}%`);
+    return { display: p.display, pct, val, color: colors[i % colors.length] };
+  });
+  let html = `<div class="macro-card" style="padding:16px;">
+    <div style="font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Allocation</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="width:90px;height:90px;border-radius:50%;background:conic-gradient(${gradientParts.join(',')});position:relative;flex-shrink:0;">
+        <div style="position:absolute;inset:22px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:12px;font-weight:600;color:#fff;font-family:'JetBrains Mono',monospace;">$${total.toFixed(0)}</span>
+        </div>
+      </div>
+      <div style="flex:1;">`;
+  for (const item of items) {
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <div style="width:8px;height:8px;border-radius:2px;background:${item.color};flex-shrink:0;"></div>
+      <span style="font-size:11px;color:#ccc;font-weight:500;">${esc(item.display)}</span>
+      <span style="font-size:10px;color:#555;margin-left:auto;font-family:'JetBrains Mono',monospace;">$${item.val.toFixed(0)}</span>
+      <span style="font-size:10px;color:#666;font-family:'JetBrains Mono',monospace;width:40px;text-align:right;">${item.pct.toFixed(1)}%</span>
+    </div>`;
+  }
+  html += '</div></div></div>';
+  // Thesis exposure
+  const categories = {};
+  for (const p of positionData) {
+    const thesis = (p.thesis || '').toLowerCase();
+    let cat = 'other';
+    if (thesis.includes('tanker') || thesis.includes('hormuz') || thesis.includes('vlcc') || thesis.includes('strait')) cat = 'tanker/shipping';
+    else if (thesis.includes('defense') || thesis.includes('rearmament') || thesis.includes('drone')) cat = 'defense';
+    else if (thesis.includes('gold') || thesis.includes('precious')) cat = 'gold';
+    else if (thesis.includes('oil') || thesis.includes('energy') || thesis.includes('drill')) cat = 'energy';
+    else if (thesis.includes('defensive') || thesis.includes('anchor') || thesis.includes('shelter') || thesis.includes('stagflation')) cat = 'defensive';
+    if (!categories[cat]) categories[cat] = { val: 0, tickers: [] };
+    categories[cat].val += parseFloat(p.posVal || 0);
+    categories[cat].tickers.push(p.display);
+  }
+  const catColors = { 'tanker/shipping': '#3498db', defense: '#2ecc71', gold: '#f39c12', energy: '#e74c3c', defensive: '#9b59b6', other: '#555' };
+  html += `<div class="macro-card" style="padding:16px;">
+    <div style="font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Thesis exposure</div>`;
+  html += '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:14px;">';
+  for (const [cat, d] of Object.entries(categories).sort((a, b) => b[1].val - a[1].val)) {
+    html += `<div style="width:${(d.val/total*100).toFixed(1)}%;background:${catColors[cat]||'#555'};"></div>`;
+  }
+  html += '</div>';
+  for (const [cat, d] of Object.entries(categories).sort((a, b) => b[1].val - a[1].val)) {
+    const pct = (d.val / total * 100).toFixed(1);
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <div style="width:8px;height:8px;border-radius:2px;background:${catColors[cat]||'#555'};flex-shrink:0;"></div>
+      <span style="font-size:11px;color:#ccc;text-transform:capitalize;font-weight:500;">${cat}</span>
+      <span style="font-size:9px;color:#444;">${d.tickers.join(', ')}</span>
+      <span style="font-size:11px;color:#666;margin-left:auto;font-family:'JetBrains Mono',monospace;">${pct}%</span>
+    </div>`;
+  }
+  const maxCat = Object.entries(categories).sort((a, b) => b[1].val - a[1].val)[0];
+  if (maxCat && (maxCat[1].val / total) > 0.55) {
+    html += `<div style="margin-top:10px;padding:7px 10px;background:#2d1f00;border:0.5px solid #5a3e00;border-radius:6px;font-size:10px;color:#f39c12;">⚠ ${((maxCat[1].val/total)*100).toFixed(0)}% concentrated in ${maxCat[0]}</div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── TASK 5b: P&L snapshot system ─────────────────────────────────────────────
+function saveDailySnapshot(totalVal) {
+  const today = new Date().toISOString().split('T')[0];
+  const snapshots = JSON.parse(localStorage.getItem('warSnapshots') || '{}');
+  snapshots[today] = { total: parseFloat(totalVal.toFixed(2)), ts: Date.now() };
+  const keys = Object.keys(snapshots).sort();
+  while (keys.length > 365) { delete snapshots[keys.shift()]; }
+  localStorage.setItem('warSnapshots', JSON.stringify(snapshots));
+}
+
+function renderPnLTimeline() {
+  const el = document.getElementById('pnlTimeline');
+  if (!el) return;
+  const snapshots = JSON.parse(localStorage.getItem('warSnapshots') || '{}');
+  const dates = Object.keys(snapshots).sort();
+  if (dates.length < 2) {
+    el.innerHTML = `<div class="macro-card" style="padding:16px;"><div style="font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;">Portfolio value · war period</div><div style="font-size:11px;color:#444;margin-top:8px;">Collecting data — first chart appears after 2 days of snapshots.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="macro-card" style="padding:16px;"><div style="font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Portfolio value · ${dates.length} days tracked</div><div id="pnlChartContainer" style="height:140px;"></div></div>`;
+  const container = document.getElementById('pnlChartContainer');
+  const chart = createChart(container, {
+    width: container.clientWidth, height: 140,
+    layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#555', fontSize: 10 },
+    grid: { vertLines: { visible: false }, horzLines: { color: '#1e1e1e' } },
+    rightPriceScale: { borderVisible: false },
+    timeScale: { borderVisible: false },
+    handleScroll: false, handleScale: false,
+  });
+  const first = snapshots[dates[0]].total;
+  const last = snapshots[dates[dates.length-1]].total;
+  const color = last >= first ? '#2ecc71' : '#e74c3c';
+  const series = chart.addAreaSeries({
+    lineColor: color, topColor: color + '25', bottomColor: color + '03',
+    lineWidth: 2, priceLineVisible: false, lastValueVisible: true,
+  });
+  series.setData(dates.map(d => ({ time: d, value: snapshots[d].total })));
+  chart.timeScale().fitContent();
+  new ResizeObserver(entries => { chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
+}
+
+// ── TASK 6: Elite master brief ───────────────────────────────────────────────
+function showToast(msg) {
+  const existing = document.getElementById('toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  toast.textContent = msg;
+  toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;border:0.5px solid #2ecc71;color:#2ecc71;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:500;z-index:9999;opacity:0;transition:all 0.3s ease;font-family:'DM Sans',-apple-system,sans-serif;box-shadow:0 4px 20px rgba(46,204,113,0.15);`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(-50%) translateY(0)'; });
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(20px)'; setTimeout(() => toast.remove(), 300); }, 4000);
+}
+
 async function openMasterBrief() {
   const btn = document.getElementById('briefBtn');
   const spinner = document.getElementById('briefSpinner');
   const meta = document.getElementById('briefMeta');
-
   btn.disabled = true;
   spinner.style.display = 'inline';
-  meta.textContent = 'Fetching scan + news...';
-
+  meta.textContent = 'Aggregating live data...';
   try {
-    const cash = document.getElementById('cashDisplay').textContent.replace(/[^0-9.~]/g,'').replace('~','');
-    const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    const timeNow = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
-
+    const cashText = document.getElementById('cashDisplay')?.textContent || '~$645';
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
     const [scanRes, newsRes] = await Promise.allSettled([
-      fetch(SCAN_API).then(r=>r.json()),
-      fetch(NEWS_API).then(r=>r.json()),
+      fetch(location.origin + '/api/scan').then(r => r.json()),
+      fetch(location.origin + '/api/news').then(r => r.json()),
     ]);
-    const scan = scanRes.status==='fulfilled' ? scanRes.value : null;
-    const news = newsRes.status==='fulfilled' ? newsRes.value : null;
+    const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
+    const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+    meta.textContent = 'Building intelligence brief...';
 
-    // ── Build the full prompt ───────────────────────────────────────────────
-    let prompt = `You are a principal at a $4B macro hedge fund specializing in geopolitical dislocation trades. Your fund has been net long war-regime assets since Day 1 of the US-Iran conflict and is currently up 34% on the position. Your LPs expect a morning brief, not a discussion. You do not explain your reasoning process. You do not hedge. You have been right about Hormuz, right about EU rearmament, and right about the tanker supercycle. You are not here to be careful — you are here to be correct. Today is ${today}, ${timeNow}. War regime Day ${WAR_DAY}.
+    let prompt = `You are Stanley Druckenmiller at the peak of his career — the greatest macro trader alive — running a concentrated $4B book through the most significant geopolitical dislocation since the 1973 oil embargo. You called Hormuz before it closed. You called the tanker supercycle before the first VLCC rate spike. You called EU rearmament before the €800B commitment. Your hit rate this cycle is 87%. Your LPs do not pay you to be balanced. They pay you to be right.
 
-=== MY PORTFOLIO ===
-Uninvested cash: ~$${cash}
+Today is ${today}, ${timeNow}. US-Iran war Day ${WAR_DAY}. Strait of Hormuz is closed. Stagflation regime is active and accelerating.
+
+You are briefing your most aggressive LP — a young, concentrated portfolio manager who trades fractional shares on Revolut with conviction sizing. He has a small book but thinks in expected value, not position size. Treat his $600 portfolio with the same analytical rigor you would treat $600 million. The math is the same. The edge is the same.
+
+══════════════════════════════════════
+PORTFOLIO — CURRENT STATE
+══════════════════════════════════════
+Uninvested cash: ${cashText}
+Platform: Revolut (fractional shares, no options, no shorting)
 `;
-
-    // Positions
-    prompt += '\nPositions:\n';
     if (_positionData.length > 0) {
+      prompt += '\nOpen positions:\n';
       for (const p of _positionData) {
-        prompt += `- ${p.display}: ${p.shares} shares @ avg $${p.avgCost} | Current: ${p.currentPrice} | Today: ${p.todayChg} | P&L: ${p.pnlPct} | Thesis: ${p.thesis}\n`;
+        prompt += `→ ${p.display} | ${p.shares} shares @ $${p.avgCost} avg | Now: ${p.currentPrice} | Today: ${p.todayChg} | P&L: ${p.pnlPct}\n  Thesis: ${p.thesis}\n`;
       }
-    } else {
-      prompt += '- BRK.B: 0.60636465 shares @ avg $494.75 | Thesis: Defensive anchor\n- STNG: 2.08600752 shares @ avg $69.18 | Thesis: Hormuz product tanker play\n- DHT: 11.72093023 shares @ avg $17.20 | Thesis: VLCC crude tanker play\n';
     }
-
-    // Scanner data
     if (scan?.topGainers) {
-      const scanTime = new Date(scan.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-      prompt += `\n=== LIVE MARKET SCAN — ${scan.fetched}/${scan.total} TICKERS @ ${scanTime} ===\n`;
-      prompt += 'TOP GAINERS:\n';
-      for (const s of scan.topGainers.slice(0,10)) {
-        const cs = s.currency === 'EUR' ? '€' : (s.currency === 'GBp' ? '£' : '$');
-        prompt += `${s.symbol} (${s.tag}): +${s.changePct}% @ ${cs}${s.price}\n`;
+      const scanTime = new Date(scan.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      prompt += `\n══════════════════════════════════════\nLIVE MARKET SCAN — ${scan.fetched||scan.all?.length||0}/${scan.total||0} WAR THESIS TICKERS @ ${scanTime}\n══════════════════════════════════════\n`;
+      prompt += '\nTOP 10 GAINERS:\n';
+      for (const s of (scan.topGainers||[]).slice(0,10)) {
+        const cs = s.currency === 'EUR' ? '€' : s.currency === 'GBp' ? '£' : '$';
+        const vol = s.volumeSpike ? ` | Vol: ${s.volumeSpike}x avg` : '';
+        prompt += `  ${s.symbol} [${s.tag}]: +${s.changePct}% @ ${cs}${s.price}${vol}\n`;
       }
-      prompt += 'TOP LOSERS:\n';
-      for (const s of scan.topLosers.slice(0,5)) {
-        const cs = s.currency === 'EUR' ? '€' : (s.currency === 'GBp' ? '£' : '$');
-        prompt += `${s.symbol} (${s.tag}): ${s.changePct}% @ ${cs}${s.price}\n`;
+      prompt += '\nTOP 5 LOSERS:\n';
+      for (const s of (scan.topLosers||[]).slice(0,5)) {
+        const cs = s.currency === 'EUR' ? '€' : s.currency === 'GBp' ? '£' : '$';
+        prompt += `  ${s.symbol} [${s.tag}]: ${s.changePct}% @ ${cs}${s.price}\n`;
       }
       if (scan.sectorSummary) {
-        prompt += '\nSECTOR AVERAGES:\n';
+        prompt += '\nSECTOR PERFORMANCE (ranked):\n';
         for (const s of scan.sectorSummary) {
-          prompt += `${s.tag.toUpperCase()}: ${s.avg>=0?'+':''}${s.avg}% avg (${s.count} stocks)\n`;
+          const bar = s.avg >= 0 ? '█'.repeat(Math.min(Math.round(s.avg*2),20)) : '░'.repeat(Math.min(Math.round(Math.abs(s.avg)*2),20));
+          prompt += `  ${s.tag.toUpperCase().padEnd(14)} ${s.avg>=0?'+':''}${s.avg.toFixed(2).padStart(6)}%  ${bar}  (${s.count} stocks, top: ${s.top}, bottom: ${s.bottom})\n`;
         }
       }
     }
-
-    // News
     if (news?.articles?.length) {
-      prompt += `\n=== LIVE NEWS — ${news.articles.length} HEADLINES ===\n`;
+      prompt += `\n══════════════════════════════════════\nLIVE INTELLIGENCE FEED — ${news.articles.length} HEADLINES\n══════════════════════════════════════\n`;
       for (const a of news.articles.slice(0,20)) {
         const t = new Date(a.publishedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        prompt += `[${t}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
+        prompt += `  [${t}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
       }
     }
-
-    // Instructions
+    const snapshots = JSON.parse(localStorage.getItem('warSnapshots') || '{}');
+    const snapDates = Object.keys(snapshots).sort();
+    if (snapDates.length >= 2) {
+      const recent = snapDates.slice(-7);
+      prompt += `\n══════════════════════════════════════\nPORTFOLIO VALUE HISTORY (last ${recent.length} days)\n══════════════════════════════════════\n`;
+      for (const d of recent) prompt += `  ${d}: $${snapshots[d].total.toFixed(2)}\n`;
+      const firstVal = snapshots[recent[0]].total;
+      const lastVal = snapshots[recent[recent.length-1]].total;
+      prompt += `  Period change: ${((lastVal-firstVal)/firstVal*100)>=0?'+':''}${((lastVal-firstVal)/firstVal*100).toFixed(2)}%\n`;
+    }
     prompt += `
-You are in character. No breaking character. No disclaimers. No softening.
-Given the live data above, deliver exactly this — nothing more, nothing less:
+══════════════════════════════════════
+DELIVERABLES — EXACTLY THIS FORMAT
+══════════════════════════════════════
 
-━━━ 1. SIGNAL DELTA (last 6h) ━━━
-What actually changed that reprices assets. Not news — what it MEANS for prices.
-Max 3 bullets. Each bullet = development + direct price implication.
-Format: "[TICKER or SECTOR] → [what just happened] → [price consequence]"
+1 ▸ SIGNAL DELTA
+What changed in the last 6 hours that actually reprices assets. Not news — signal. Max 4 bullets.
+Format each bullet as: "[SECTOR/TICKER] → [event] → [direct price implication]"
 
-━━━ 2. POSITION AUDIT ━━━
-For each of my positions, one line each:
-[TICKER] | [HOLD/ADD/TRIM/CUT] | Conviction: [HIGH/MED/LOW] | [one sentence max]
+2 ▸ POSITION AUDIT
+One line per open position. No exceptions. No skipping.
+Format: "[TICKER] | [HOLD / ADD / TRIM / EXIT] | Conviction: [1-10] | [one sentence — why this action, why now]"
 
-━━━ 3. TOP 3 WAR MOVERS ━━━
-Format per name:
-[TICKER] — [price] — [BUY/HOLD/AVOID] — Target: $[X] — Conviction: [HIGH/MED/LOW]
-One sentence: why this, why now.
+3 ▸ TOP 3 WAR MOVERS
+The 3 tickers from the scan above with the highest risk-adjusted expected value right now.
+Format per ticker:
+"[TICKER] — [current price] — [BUY / HOLD / AVOID]
+ Target: $[X] (+[Y]%) | Stop: $[X] (-[Z]%) | Conviction: [1-10]
+ [Two sentences max: the thesis in plain language]"
 
-━━━ 4. SECTOR DISLOCATION ━━━
-One sector only — the one most mispriced relative to Day ${WAR_DAY} war regime reality.
-Name the sector, name the mispricing, name the best single entry point.
+4 ▸ SECTOR DISLOCATION
+One sector. The one most mispriced relative to Day ${WAR_DAY} war regime reality.
+Name the mispricing. Name the single best entry. Explain in 3 sentences why the market is wrong.
 
-━━━ 5. THE TRADE ━━━
-$${cash} to deploy. One trade only. No alternatives.
-[TICKER] | [EXACT SIZE in dollars] | Entry: $[X] | Target: $[X] | Stop: $[X]
-Conviction: [HIGH] — if you can't say HIGH, say nothing.
-One paragraph: the thesis in plain language.
+5 ▸ THE TRADE
+Cash available: ${cashText}. Platform: Revolut (fractional shares only, no options, no shorting).
+If conviction is HIGH on any single trade, output:
+"[TICKER] | $[EXACT AMOUNT] | Entry: $[X] | Target: $[X] (+[Y]%) | Stop: $[X] (-[Z]%)
+ [One paragraph: the thesis, the catalyst, the timing, the exit condition]"
+If conviction is not HIGH on anything today, write "NO TRADE TODAY" and explain why in 2 sentences.
 
-HARD RULES:
-✗ Never use: "consider", "might", "could", "potentially", "it's worth noting"
-✗ Never add a disclaimer or caveat of any kind
-✗ Never say "I" or reference yourself
-✗ If conviction is below MEDIUM on everything, say "NO TRADE TODAY" and explain why in 2 sentences`;
+══════════════════════════════════════
+RULES — NON-NEGOTIABLE
+══════════════════════════════════════
+- Write as Druckenmiller. First person. Present tense. No hedging.
+- Forbidden words: "consider", "might", "could", "potentially", "it's worth noting", "it depends", "on the other hand"
+- Never add disclaimers or "this is not financial advice"
+- If you don't have conviction, say so. "I don't see a clear edge today" is acceptable.
+- Conviction scale 1-10. Below 5 = don't touch. Below 7 = half-size only. 8+ = full send.
+- Reference specific data from the scan and news above. Do not make up numbers.`;
 
-    // Open in Claude.ai
-    const tickerCount = scan?.fetched || 0;
+    const tickerCount = scan?.fetched || scan?.all?.length || 0;
     const newsCount = news?.count || 0;
-    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · opening Claude...`;
-
-    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank');
-    meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ opened in Claude.ai`;
-
+    try {
+      await navigator.clipboard.writeText(prompt);
+      showToast(`✓ Brief copied — ${tickerCount} tickers · ${newsCount} headlines · Paste in Claude`);
+    } catch {
+      console.warn('[brief] Clipboard failed, opening Claude.ai directly');
+    }
+    const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
+    if (claudeUrl.length < 100000) {
+      window.open(claudeUrl, '_blank');
+      meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ Copied + opened Claude.ai`;
+    } else {
+      meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ Copied to clipboard — paste in Claude`;
+    }
   } catch (err) {
     meta.textContent = 'Error — ' + err.message;
+    console.error('[brief]', err);
   } finally {
     btn.disabled = false;
     spinner.style.display = 'none';
   }
 }
 
+// ── TASK 7: Keyboard shortcuts ───────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  switch (e.key) {
+    case '1': switchTab('portfolio', null); break;
+    case '2': switchTab('scanner', null); break;
+    case '3': switchTab('news', null); break;
+    case 'r': case 'R': e.preventDefault(); loadAll(); showToast('↻ Refreshing all data...'); break;
+    case 'b': case 'B': e.preventDefault(); openMasterBrief(); break;
+    case 'Escape': closeChartModal(); break;
+  }
+});
+
+// ── TASK 8: Auto-refresh + market hours ─────────────────────────────────────
+function isMarketHours() {
+  const now = new Date();
+  const ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = ny.getDay();
+  const time = ny.getHours() * 60 + ny.getMinutes();
+  if (day === 0 || day === 6) return false;
+  return time >= 240 && time <= 1200;
+}
+
+let _autoRefreshTimer = null;
+function startAutoRefresh() {
+  if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(() => {
+    if (isMarketHours()) { console.log('[auto] Market hours — refreshing'); loadAll(); }
+  }, 60000);
+}
+
+function updateMarketStatus() {
+  const el = document.getElementById('marketStatus');
+  if (!el) return;
+  const open = isMarketHours();
+  el.innerHTML = open
+    ? '<span class="status-dot dot-live" style="width:5px;height:5px;"></span>MKT OPEN'
+    : '<span class="status-dot dot-error" style="width:5px;height:5px;"></span>MKT CLOSED';
+  el.style.color = open ? '#2ecc71' : '#555';
+}
+
+// Edit panel
 function toggleEdit() {
   const panel = document.getElementById('editPanel');
   panel.classList.toggle('open');
@@ -685,10 +1155,10 @@ function renderEditRows() {
   const positions = loadSavedPositions();
   document.getElementById('editRows').innerHTML = positions.map((p,i)=>`
     <div class="pos-row" id="row-${i}">
-      <input type="text" value="${p.sym}" placeholder="BRK-B" id="sym-${i}">
+      <input type="text" value="${esc(p.sym)}" placeholder="BRK-B" id="sym-${i}">
       <input type="number" value="${p.shares}" placeholder="0.6" id="shares-${i}" step="0.0001">
       <input type="number" value="${p.gbp?p.avgCost/100:p.avgCost}" placeholder="494.75" id="cost-${i}" step="0.01">
-      <input type="text" value="${p.display}" placeholder="BRK.B" id="label-${i}">
+      <input type="text" value="${esc(p.display)}" placeholder="BRK.B" id="label-${i}">
       <button class="del-btn" onclick="deleteRow(${i})">×</button>
     </div>`).join('');
 }
@@ -718,26 +1188,10 @@ function savePositions() {
 
 function openClaude(msg) { window.open(`https://claude.ai/new?q=${encodeURIComponent(msg)}`, '_blank'); }
 
-function renderAnalysisButtons() {
-  const d = WAR_DAY;
-  const btns = [
-    { icon: '💰', label: 'Best trade for my uninvested cash right now ↗', msg: `Day ${d} US-Iran war. Hormuz closed. I hold BRK-B (0.606 shares @ $494.75, HOLD), STNG Scorpio Tankers (2.086 shares @ $69.18, BUY thesis: Hormuz product tanker play), and DHT Holdings (11.72 shares @ $17.20, BUY thesis: VLCC crude tanker play). I have ~$645 uninvested cash. What is the single best trade I can make right now? Be blunt, specific ticker, specific size, one paragraph reason.` },
-    { icon: '🎯', label: 'Should I buy RHM today — blunt verdict ↗', msg: `Should I buy RHM (Rheinmetall) today? I already hold STNG (product tanker play), DHT (VLCC crude tanker play), and BRK-B (defensive anchor). US-Iran war Day ${d}. Give me a blunt yes or no + one paragraph reason + price target.` },
-    { icon: '🚢', label: 'STNG vs DHT — tanker thesis check ↗', msg: `I hold STNG (Scorpio Tankers, 2.086 shares @ $69.18) and DHT Holdings (11.72 shares @ $17.20). Hormuz is closed Day ${d} of US-Iran war. Tanker rates surging. Compare STNG vs DHT: which has more upside from here? Should I add to either? Be specific.` },
-    { icon: '🔍', label: 'Defense sector — what am I missing? ↗', msg: `Scan European and US defense sector for plays I am missing beyond RHM. EU rearmament €800B locked in, US-Iran war Day ${d}. I have ~$645 to deploy. What is the highest asymmetry play right now?` },
-    { icon: '🛡', label: 'Top 3 risks + hedges ↗', msg: `Top 3 risks to my war portfolio right now: BRK-B + STNG + DHT + ~$645 uninvested. US-Iran war Day ${d}. What can blow up my thesis and what hedges should I consider?` },
-    { icon: '🏦', label: 'Private credit — threat to BRK-B? ↗', msg: 'Is the private credit crisis thesis a real risk to my BRK-B position in a war + stagflation regime? Be direct.' },
-  ];
-  const el = document.getElementById('analysisButtons');
-  if (!el) return;
-  el.innerHTML = btns.map(b => `<button class="ask-btn" onclick="openClaude(\`${b.msg.replace(/`/g,'\\`')}\`)">${b.icon} ${b.label}</button>`).join('');
-}
-
 async function loadAll() {
   const dot = document.getElementById('dot'), ts = document.getElementById('ts');
   dot.className = 'status-dot dot-loading';
   ts.textContent = 'Fetching live prices...';
-  renderAnalysisButtons();
   await loadConfig();
   try {
     await Promise.all([loadPositions(), loadWatchlist(), loadMacro()]);
@@ -748,7 +1202,33 @@ async function loadAll() {
     dot.className = 'status-dot dot-error';
     ts.textContent = 'Error — click Refresh';
   }
+  initLivePrices();
+  startAutoRefresh();
+  updateMarketStatus();
 }
+
+setInterval(updateMarketStatus, 60000);
+
+// Task 10: service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(err => console.warn('[sw]', err));
+}
+
+// Task 2a: expose all onclick-referenced functions to global scope
+window.loadAll = loadAll;
+window.switchTab = switchTab;
+window.toggleEdit = toggleEdit;
+window.addEditRow = addEditRow;
+window.deleteRow = deleteRow;
+window.savePositions = savePositions;
+window.toggleWatchAdd = toggleWatchAdd;
+window.addToWatchlist = addToWatchlist;
+window.removeFromWatchlist = removeFromWatchlist;
+window.openMasterBrief = openMasterBrief;
+window.openChartModal = openChartModal;
+window.closeChartModal = closeChartModal;
+window.loadScanner = loadScanner;
+window.loadNews = loadNews;
 
 loadAll();
 </script>
