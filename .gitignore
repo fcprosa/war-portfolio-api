@@ -1,4 +1,14 @@
 .env
-.env.local
 .vercel
+.env.local
+argos.db
+*.db
+*.sqlite
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+dashboard.html
+*.log
+
 node_modules/
