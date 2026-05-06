@@ -1,4 +1,25 @@
 .env
 .env.local
+gatto_farioli/.env
 .vercel
+
+# Local databases and generated runtime artifacts
+argos.db
+*.db
+*.sqlite
+gatto_farioli/argos.db
+gatto_farioli/dashboard.html
+
+# Python local state
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+gatto_farioli/.venv/
+
+# Generated outputs / logs
+dashboard.html
+*.log
+
+# Node / Vercel dashboard dependencies
 node_modules/
