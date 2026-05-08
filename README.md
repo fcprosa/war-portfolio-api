@@ -1,10 +1,9 @@
-codex/understand-codebase-and-tool-functionality-thwxat
 # War Portfolio API + Gatto Farioli
 
-This repository is now a **two-part macro trading workspace**:
+This repository is a **two-part macro trading workspace**:
 
-1. **War Portfolio API** — the existing Vercel/browser dashboard for live portfolio cards, scanner views, news panels, charts, and Claude prompt handoff.
-2. **Gatto Farioli** — the new local-first Python intelligence engine that will ingest news, prices, macro data, prediction markets, and thesis state into SQLite before producing Claude-ready briefs.
+1. **War Portfolio API** — the Vercel/browser dashboard for live portfolio cards, scanner views, news panels, charts, and Claude prompt handoff.
+2. **Gatto Farioli** — a local-first Python intelligence engine that ingests news, prices, macro data, prediction markets, and thesis state into SQLite before producing Claude-ready briefs.
 
 The two systems intentionally live in the same repo because Gatto Farioli is meant to **complement and eventually strengthen** the original War Portfolio dashboard, not replace it immediately.
 
@@ -30,14 +29,7 @@ war-portfolio-api/
 
 ## How to use the existing War Portfolio dashboard
 
-Use the dashboard exactly as before. The existing web app is still rooted in:
-
-- `index.html`
-- `api/`
-- `lib/`
-- `sw.js`
-
-For Vercel/dashboard environment variables, use the root `.env.example` as the template.
+Use the dashboard exactly as before. The existing web app is rooted in `index.html`, `api/`, `lib/`, and `sw.js`. For Vercel/dashboard environment variables, use the root `.env.example` as the template.
 
 ## How to use Gatto Farioli locally
 
@@ -45,74 +37,78 @@ Gatto Farioli runs from the `gatto_farioli/` folder on your MacBook:
 
 ```bash
 cd gatto_farioli
-# Gatto Farioli — Autonomous Macro Intelligence System
-
-Gatto Farioli is a local-first macro intelligence system for a concentrated retail trader. The system ingests news, prices, macro data, prediction markets, and portfolio/thesis state so it can eventually generate Claude-ready briefs and actionable alerts without cloud infrastructure.
-
-This repository is currently at **Session 1: Foundation**.
-
-## Current working value
-
-Session 1 delivers:
-
-- Python 3.11+ project skeleton.
-- SQLite schema in `argos.db`.
-- User-editable `config.yaml` for portfolio, theses, watchlist, sources, thresholds, LLM budget, and schedule.
-- Async tier-1 RSS ingestion with `httpx` + `feedparser`.
-- URL-hash dedupe using normalized URLs.
-- Health metadata in the `runs` table.
-- `run.py` orchestrator with `--dry-run` and `--health`.
-
-LLM enrichment, prices, macro, prediction markets, alerts, Telegram/email, and dashboard output are intentionally left for later sessions.
-
-## Setup
-
-```bash
-main
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env    # fill in API keys
 python run.py
-codex/understand-codebase-and-tool-functionality-thwxat
 python run.py --health
 ```
 
-Session 1 currently ingests tier-1 RSS feeds into a local SQLite file at `gatto_farioli/argos.db`. That DB is gitignored and should remain local.
+The SQLite file is written to `gatto_farioli/argos.db`. It is gitignored and stays local.
 
-## Current integration status
+## Prediction Markets
 
-Gatto Farioli is currently **Session 1: Foundation**. It is not yet wired into the browser dashboard and does not yet generate alerts or final Claude briefs.
+The dashboard brief now includes Kalshi and Polymarket positions alongside Hormuz transit data from IMF PortWatch.
 
-Working now:
+### Adding prediction market positions to state
 
-- SQLite schema and DB helpers.
-- Config loading from `gatto_farioli/config.yaml`.
-- Async tier-1 RSS ingestion.
-- URL-hash dedupe for news articles.
-- `python run.py --health` diagnostics.
-
-Future sessions will add prices, macro, prediction markets, LLM enrichment, thesis monitoring, Telegram/email output, and the main Claude-ready brief.
-
-```
-
-## Verify dedupe
-
-Run ingestion twice:
+Positions live in the `predictionMarkets` array inside the Vercel Blob state. Use this curl to seed your initial Kalshi position:
 
 ```bash
-python run.py
-python run.py
-python run.py --health
+curl -X POST https://war-portfolio-api.vercel.app/api/state \
+  -H "Content-Type: application/json" \
+  -H "X-Pin: YOUR_STATE_PIN" \
+  -d '{
+    "predictionMarkets": [
+      {
+        "platform": "kalshi",
+        "ticker": "KXHORMUZNORMAL-26JUN01-T60",
+        "side": "NO",
+        "contracts": 393.12,
+        "avgCost": 0.7631,
+        "thesis": "hormuz_stays_closed_short_term"
+      }
+    ]
+  }'
 ```
 
-The second run should insert far fewer articles because `news.url_hash` is unique.
+Replace `YOUR_STATE_PIN` with the value of your `STATE_PIN` environment variable. You can add Polymarket positions to the same array using `"platform": "polymarket"` and setting `ticker` to the Polymarket condition ID.
 
-## Database
+### Updating the PortWatch manual fallback
 
-The local SQLite file is named `argos.db` to match the locked spec. It is gitignored and should stay on the user's MacBook.
+If the MacroMicro data endpoint is unreachable, the brief falls back to a manual value stored in Blob state. Update it with:
+
+```bash
+curl -X POST https://war-portfolio-api.vercel.app/api/state \
+  -H "Content-Type: application/json" \
+  -H "X-Pin: YOUR_STATE_PIN" \
+  -d '{
+    "portwatchManual": {
+      "ma7day": 42,
+      "asOf": "2026-05-08",
+      "note": "Manual entry — MacroMicro unreachable"
+    }
+  }'
+```
+
+### New environment variables
+
+Add to your Vercel project environment variables:
+
+```
+DEFAULT_PREDICTION_MARKETS=[]
+DEFAULT_PORTWATCH_MANUAL=null
+```
+
+Both are optional — the dashboard falls back to empty state if not set.
+
+## Gatto Farioli — current status
+
+Gatto Farioli is at **Session 1: Foundation**. Working now: SQLite schema and DB helpers, config loading from `gatto_farioli/config.yaml`, async tier-1 RSS ingestion, URL-hash dedupe, `python run.py --health` diagnostics.
+
+Future sessions will add prices, macro, prediction markets, LLM enrichment, thesis monitoring, Telegram/email output, and Claude-ready briefs.
 
 ## Privacy
 
-All persistent state is local. Session 1 only contacts configured RSS feeds. Future sessions will contact data providers and Anthropic only when those features are enabled.
-main
+All Gatto Farioli persistent state is local. Session 1 only contacts configured RSS feeds. The War Portfolio dashboard uses Vercel Blob for portfolio state — no third-party tracking.

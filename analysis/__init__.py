@@ -1,1 +1,0 @@
-"""Gatto Farioli package module."""
