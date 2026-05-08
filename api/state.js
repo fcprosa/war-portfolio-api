@@ -1,5 +1,5 @@
 // /api/state.js — Server-side portfolio state (replaces config.js)
-// Stores positions, watchlist, cash as a single JSON blob on Vercel Blob.
+// Stores positions, watchlist, cash, predictionMarkets, portwatchManual as a single JSON blob.
 // GET  → returns current state
 // POST → saves new state (protected by PIN)
 //
@@ -7,7 +7,8 @@
 //   BLOB_READ_WRITE_TOKEN — auto-set when you connect Vercel Blob in dashboard
 //   STATE_PIN             — any short PIN you choose (e.g. "1234") to protect writes
 
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
+import { getLatestBlob } from '../lib/state-helpers.js';
 
 const BLOB_KEY = 'war-portfolio-state.json';
 const CORS_ORIGINS = ['https://war-portfolio-api.vercel.app', 'http://localhost:3000', 'http://localhost:5500'];
@@ -19,39 +20,30 @@ function setCors(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Pin');
 }
 
-async function getLatestBlob() {
-  try {
-    const { blobs } = await list({ prefix: BLOB_KEY });
-    if (blobs.length === 0) return null;
-    // Get the most recent one
-    const latest = blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
-    const resp = await fetch(latest.url);
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch (err) {
-    console.error('[state] blob read failed:', err.message);
-    return null;
-  }
-}
-
 export default async function handler(req, res) {
   setCors(req, res);
 
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // ── GET: return current state ──
   if (req.method === 'GET') {
     const state = await getLatestBlob();
     if (state) {
-      return res.status(200).json(state);
+      // Ensure new fields exist for older blobs
+      return res.status(200).json({
+        ...state,
+        predictionMarkets: state.predictionMarkets ?? [],
+        portwatchManual: state.portwatchManual ?? null,
+      });
     }
-    // Fallback to env-var defaults (backward compatible with config.js)
+    // Fallback to env-var defaults
     return res.status(200).json({
       positions: JSON.parse(process.env.DEFAULT_POSITIONS || '[]'),
       watchlist: JSON.parse(process.env.DEFAULT_WATCHLIST || '[]'),
       cash: process.env.DEFAULT_CASH || '~$0',
       cashSub: process.env.DEFAULT_CASH_SUB || '',
+      predictionMarkets: JSON.parse(process.env.DEFAULT_PREDICTION_MARKETS || '[]'),
+      portwatchManual: JSON.parse(process.env.DEFAULT_PORTWATCH_MANUAL || 'null'),
     });
   }
 
@@ -68,11 +60,17 @@ export default async function handler(req, res) {
 
     try {
       const body = await readBody(req);
+
+      // Load existing state so a partial POST (e.g. only predictionMarkets) merges cleanly
+      const existing = await getLatestBlob() || {};
+
       const state = {
-        positions: body.positions || [],
-        watchlist: body.watchlist || [],
-        cash: body.cash || '~$0',
-        cashSub: body.cashSub || '',
+        positions: body.positions ?? existing.positions ?? [],
+        watchlist: body.watchlist ?? existing.watchlist ?? [],
+        cash: body.cash ?? existing.cash ?? '~$0',
+        cashSub: body.cashSub ?? existing.cashSub ?? '',
+        predictionMarkets: body.predictionMarkets ?? existing.predictionMarkets ?? [],
+        portwatchManual: body.portwatchManual !== undefined ? body.portwatchManual : (existing.portwatchManual ?? null),
         updatedAt: new Date().toISOString(),
       };
 

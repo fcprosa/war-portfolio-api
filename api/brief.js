@@ -1,7 +1,11 @@
 // /api/brief.js
-// Aggregates positions, market scan, and news into a single structured prompt for Claude
+// Aggregates positions, market scan, news, Kalshi, Polymarket, and PortWatch into a Claude prompt
 import { runScan } from '../lib/scanner.js';
 import { fetchAllNews } from '../lib/news.js';
+import { fetchKalshiState } from '../lib/kalshi.js';
+import { fetchPolymarketState } from '../lib/polymarket.js';
+import { fetchPortwatchHormuz } from '../lib/portwatch.js';
+import { getLatestBlob } from '../lib/state-helpers.js';
 import { getWarDay } from '../lib/utils.js';
 
 export default async function handler(req, res) {
@@ -18,17 +22,34 @@ export default async function handler(req, res) {
     const cash = body.cash || '~$645';
     const warDay = getWarDay();
 
-    // Fetch scan + news in parallel — no self HTTP calls
-    const [scanRes, newsRes] = await Promise.allSettled([
+    // Load Blob state for prediction market positions and PortWatch manual fallback
+    const blobState = await getLatestBlob();
+    const predMarkets = body.predictionMarkets ?? blobState?.predictionMarkets ?? [];
+    const portwatchManual = blobState?.portwatchManual ?? null;
+
+    const kalshiPositions = predMarkets.filter(p => p.platform === 'kalshi');
+    const polyPositions = predMarkets.filter(p => p.platform === 'polymarket');
+
+    // Fetch all sources in parallel
+    const [scanRes, newsRes, kalshiRes, polyRes, portwatchRes] = await Promise.allSettled([
       runScan(),
       fetchAllNews(),
+      fetchKalshiState(kalshiPositions),
+      fetchPolymarketState(polyPositions),
+      fetchPortwatchHormuz(portwatchManual),
     ]);
 
     const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
     const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+    const kalshi = kalshiRes.status === 'fulfilled' ? kalshiRes.value : null;
+    const poly = polyRes.status === 'fulfilled' ? polyRes.value : null;
+    const portwatch = portwatchRes.status === 'fulfilled' ? portwatchRes.value : null;
 
     if (scanRes.status === 'rejected') console.error('[brief] scan failed:', scanRes.reason?.message);
     if (newsRes.status === 'rejected') console.error('[brief] news failed:', newsRes.reason?.message);
+    if (kalshiRes.status === 'rejected') console.error('[brief] kalshi failed:', kalshiRes.reason?.message);
+    if (polyRes.status === 'rejected') console.error('[brief] polymarket failed:', polyRes.reason?.message);
+    if (portwatchRes.status === 'rejected') console.error('[brief] portwatch failed:', portwatchRes.reason?.message);
 
     // Build structured prompt
     let prompt = `You are my personal war portfolio strategist. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. US-Iran war Day ${warDay}. Hormuz closed. Stagflation regime active.
@@ -72,6 +93,9 @@ Uninvested cash: ${cash}
       }
     }
 
+    prompt += buildPredictionMarketsSection(kalshi, poly);
+    prompt += buildPortwatchSection(portwatch, portwatchManual);
+
     prompt += `
 === YOUR TASK ===
 Based on everything above — my portfolio, the live market scan, and breaking news — give me:
@@ -90,6 +114,9 @@ Be blunt. No hedging. Treat me like a professional.`;
         scanTickers: scan?.all?.length || 0,
         newsHeadlines: news?.count || 0,
         positions: positions.length,
+        kalshiPositions: kalshi?.positions?.length || 0,
+        polyPositions: poly?.positions?.length || 0,
+        portwatchSource: portwatch?.source || 'unavailable',
       }
     });
 
@@ -97,6 +124,79 @@ Be blunt. No hedging. Treat me like a professional.`;
     console.error('[brief] handler failed:', err.message);
     return res.status(500).json({ error: err.message });
   }
+}
+
+export function buildPredictionMarketsSection(kalshi, poly) {
+  const hasKalshi = kalshi?.positions?.length > 0;
+  const hasPoly = poly?.positions?.length > 0;
+  if (!hasKalshi && !hasPoly) return '';
+
+  let section = `
+══════════════════════════════════════
+PREDICTION MARKET POSITIONS
+══════════════════════════════════════
+`;
+
+  if (hasKalshi) {
+    section += '\nKALSHI:\n';
+    for (const p of kalshi.positions) {
+      const price = p.side === 'NO' ? p.currentNoPrice : p.currentYesPrice;
+      const priceStr = price !== null ? `$${price.toFixed(4)}` : 'price unavailable';
+      const mvStr = p.currentMarketValue !== null ? `$${p.currentMarketValue.toFixed(2)}` : 'N/A';
+      const pnlStr = p.unrealizedPnlPct !== null ? `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%` : 'N/A';
+      const resolves = p.closeTime ? new Date(p.closeTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown';
+      section += `→ ${p.ticker} | ${p.contracts} contracts ${p.side} @ avg $${p.avgCost} | Now: ${priceStr}\n`;
+      section += `  Market value: ${mvStr} | Unrealized P&L: ${pnlStr}\n`;
+      section += `  Resolves: ${resolves}\n`;
+      section += `  Thesis: ${p.thesis}\n`;
+    }
+    if (kalshi.apiNote) section += `  Note: ${kalshi.apiNote}\n`;
+  }
+
+  if (hasPoly) {
+    section += '\nPOLYMARKET:\n';
+    for (const p of poly.positions) {
+      const price = p.side === 'NO' ? p.currentNoPrice : p.currentYesPrice;
+      const priceStr = price !== null ? `$${price.toFixed(4)}` : 'price unavailable';
+      const mvStr = p.currentMarketValue !== null ? `$${p.currentMarketValue.toFixed(2)}` : 'N/A';
+      const pnlStr = p.unrealizedPnlPct !== null ? `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%` : 'N/A';
+      const resolves = p.closeTime ? new Date(p.closeTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown';
+      section += `→ ${p.ticker} | ${p.contracts} contracts ${p.side} @ avg $${p.avgCost} | Now: ${priceStr}\n`;
+      section += `  Market value: ${mvStr} | Unrealized P&L: ${pnlStr}\n`;
+      section += `  Resolves: ${resolves}\n`;
+      section += `  Thesis: ${p.thesis}\n`;
+    }
+    if (poly.apiNote) section += `  Note: ${poly.apiNote}\n`;
+  }
+
+  return section;
+}
+
+export function buildPortwatchSection(portwatch, manualFallback) {
+  let section = `
+══════════════════════════════════════
+HORMUZ TRANSIT DATA — IMF PORTWATCH
+══════════════════════════════════════
+`;
+
+  if (!portwatch || portwatch.source === 'unavailable') {
+    const lastKnown = manualFallback?.ma7day ?? null;
+    section += lastKnown !== null
+      ? `PortWatch data unavailable. Last known manual value: ${lastKnown} transit calls (as of ${manualFallback.asOf || 'unknown'})\n`
+      : `PortWatch data unavailable. No manual fallback set.\n`;
+    return section;
+  }
+
+  section += `7-day MA: ${portwatch.ma7day !== null ? portwatch.ma7day : 'N/A'} transit calls`;
+  if (portwatch.source === 'macromicro') section += ` (threshold for Kalshi NO resolution: 60)`;
+  section += `\n`;
+  if (portwatch.daily !== null && portwatch.daily !== portwatch.ma7day) {
+    section += `Daily latest: ${portwatch.daily}\n`;
+  }
+  section += `As of: ${portwatch.asOf || 'unknown'} | Source: ${portwatch.source}\n`;
+  if (portwatch.warning) section += `⚠ ${portwatch.warning}\n`;
+
+  return section;
 }
 
 async function readBody(req) {

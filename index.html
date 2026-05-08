@@ -274,6 +274,9 @@ const SCAN_API = 'https://war-portfolio-api.vercel.app/api/scan';
 const NEWS_API = 'https://war-portfolio-api.vercel.app/api/news';
 const STATE_API = location.origin + '/api/state';
 const HISTORY_API = location.origin + '/api/history';
+const KALSHI_API = location.origin + '/api/kalshi';
+const POLYMARKET_API = location.origin + '/api/polymarket';
+const PORTWATCH_API = location.origin + '/api/portwatch';
 
 // XSS sanitization
 function esc(str) {
@@ -1024,12 +1027,18 @@ async function openMasterBrief() {
     const cashText = document.getElementById('cashDisplay')?.textContent || '~$645';
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-    const [scanRes, newsRes] = await Promise.allSettled([
+    const [scanRes, newsRes, kalshiRes, polyRes, portwatchRes] = await Promise.allSettled([
       fetch(location.origin + '/api/scan').then(r => r.json()),
       fetch(location.origin + '/api/news').then(r => r.json()),
+      fetch(KALSHI_API).then(r => r.json()),
+      fetch(POLYMARKET_API).then(r => r.json()),
+      fetch(PORTWATCH_API).then(r => r.json()),
     ]);
     const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
     const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
+    const kalshi = kalshiRes.status === 'fulfilled' ? kalshiRes.value : null;
+    const poly = polyRes.status === 'fulfilled' ? polyRes.value : null;
+    const portwatch = portwatchRes.status === 'fulfilled' ? portwatchRes.value : null;
     meta.textContent = 'Building intelligence brief...';
 
     let prompt = `You are Stanley Druckenmiller at the peak of his career — the greatest macro trader alive — running a concentrated $4B book through the most significant geopolitical dislocation since the 1973 oil embargo. You called Hormuz before it closed. You called the tanker supercycle before the first VLCC rate spike. You called EU rearmament before the €800B commitment. Your hit rate this cycle is 87%. Your LPs do not pay you to be balanced. They pay you to be right.
@@ -1079,6 +1088,58 @@ Platform: Revolut (fractional shares, no options, no shorting)
         prompt += `  [${t}] [${a.tag.toUpperCase()}] ${a.title} — ${a.source}\n`;
       }
     }
+    // Prediction markets section
+    const hasKalshi = kalshi?.positions?.length > 0;
+    const hasPoly = poly?.positions?.length > 0;
+    if (hasKalshi || hasPoly) {
+      prompt += `\n══════════════════════════════════════\nPREDICTION MARKET POSITIONS\n══════════════════════════════════════\n`;
+      if (hasKalshi) {
+        prompt += '\nKALSHI:\n';
+        for (const p of kalshi.positions) {
+          const price = p.side === 'NO' ? p.currentNoPrice : p.currentYesPrice;
+          const priceStr = price !== null ? `$${price.toFixed(4)}` : 'price unavailable';
+          const mvStr = p.currentMarketValue !== null ? `$${p.currentMarketValue.toFixed(2)}` : 'N/A';
+          const pnlStr = p.unrealizedPnlPct !== null ? `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%` : 'N/A';
+          const resolves = p.closeTime ? new Date(p.closeTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown';
+          prompt += `→ ${p.ticker} | ${p.contracts} contracts ${p.side} @ avg $${p.avgCost} | Now: ${priceStr}\n`;
+          prompt += `  Market value: ${mvStr} | Unrealized P&L: ${pnlStr}\n`;
+          prompt += `  Resolves: ${resolves}\n`;
+          prompt += `  Thesis: ${p.thesis}\n`;
+        }
+        if (kalshi.apiNote) prompt += `  Note: ${kalshi.apiNote}\n`;
+      }
+      if (hasPoly) {
+        prompt += '\nPOLYMARKET:\n';
+        for (const p of poly.positions) {
+          const price = p.side === 'NO' ? p.currentNoPrice : p.currentYesPrice;
+          const priceStr = price !== null ? `$${price.toFixed(4)}` : 'price unavailable';
+          const mvStr = p.currentMarketValue !== null ? `$${p.currentMarketValue.toFixed(2)}` : 'N/A';
+          const pnlStr = p.unrealizedPnlPct !== null ? `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%` : 'N/A';
+          const resolves = p.closeTime ? new Date(p.closeTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown';
+          prompt += `→ ${p.ticker} | ${p.contracts} contracts ${p.side} @ avg $${p.avgCost} | Now: ${priceStr}\n`;
+          prompt += `  Market value: ${mvStr} | Unrealized P&L: ${pnlStr}\n`;
+          prompt += `  Resolves: ${resolves}\n`;
+          prompt += `  Thesis: ${p.thesis}\n`;
+        }
+        if (poly.apiNote) prompt += `  Note: ${poly.apiNote}\n`;
+      }
+    }
+
+    // PortWatch Hormuz transit section
+    {
+      prompt += `\n══════════════════════════════════════\nHORMUZ TRANSIT DATA — IMF PORTWATCH\n══════════════════════════════════════\n`;
+      if (!portwatch || portwatch.source === 'unavailable') {
+        prompt += `PortWatch data unavailable. No manual fallback set.\n`;
+      } else {
+        prompt += `7-day MA: ${portwatch.ma7day !== null ? portwatch.ma7day : 'N/A'} transit calls`;
+        if (portwatch.source === 'macromicro') prompt += ` (threshold for Kalshi NO resolution: 60)`;
+        prompt += `\n`;
+        if (portwatch.daily !== null && portwatch.daily !== portwatch.ma7day) prompt += `Daily latest: ${portwatch.daily}\n`;
+        prompt += `As of: ${portwatch.asOf || 'unknown'} | Source: ${portwatch.source}\n`;
+        if (portwatch.warning) prompt += `⚠ ${portwatch.warning}\n`;
+      }
+    }
+
     const snapshots = JSON.parse(localStorage.getItem('warSnapshots') || '{}');
     const snapDates = Object.keys(snapshots).sort();
     if (snapDates.length >= 2) {
@@ -1132,18 +1193,22 @@ RULES — NON-NEGOTIABLE
 
     const tickerCount = scan?.fetched || scan?.all?.length || 0;
     const newsCount = news?.count || 0;
+    const kalshiCount = kalshi?.positions?.length || 0;
+    const polyCount = poly?.positions?.length || 0;
+    const pwSource = portwatch?.source || 'unavailable';
+    const summaryLine = `${tickerCount} tickers · ${newsCount} headlines · ${kalshiCount + polyCount} pred markets · PortWatch: ${pwSource}`;
     try {
       await navigator.clipboard.writeText(prompt);
-      showToast(`✓ Brief copied — ${tickerCount} tickers · ${newsCount} headlines · Paste in Claude`);
+      showToast(`✓ Brief copied — ${summaryLine} · Paste in Claude`);
     } catch {
       console.warn('[brief] Clipboard failed, opening Claude.ai directly');
     }
     const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
     if (claudeUrl.length < 100000) {
       window.open(claudeUrl, '_blank');
-      meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ Copied + opened Claude.ai`;
+      meta.textContent = `${summaryLine} · ✓ Copied + opened Claude.ai`;
     } else {
-      meta.textContent = `${tickerCount} tickers · ${newsCount} headlines · ✓ Copied to clipboard — paste in Claude`;
+      meta.textContent = `${summaryLine} · ✓ Copied to clipboard — paste in Claude`;
     }
   } catch (err) {
     meta.textContent = 'Error — ' + err.message;
