@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "seed:memory": "node --env-file=.env scripts/seed_memory.js",
-    "verify:memory": "node --env-file=.env scripts/verify_memory.js"
+    "verify:memory": "node --env-file=.env scripts/verify_memory.js",
+    "dry:prompt": "node --env-file=.env scripts/dry_prompt.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "@supabase/supabase-js": "^2.105.4",
     "@vercel/blob": "^0.27.0"
   }
