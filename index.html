@@ -1030,9 +1030,9 @@ async function openMasterBrief() {
     const [scanRes, newsRes, kalshiRes, polyRes, portwatchRes] = await Promise.allSettled([
       fetch(location.origin + '/api/scan').then(r => r.json()),
       fetch(location.origin + '/api/news').then(r => r.json()),
-      fetch(KALSHI_API).then(r => r.json()),
-      fetch(POLYMARKET_API).then(r => r.json()),
-      fetch(PORTWATCH_API).then(r => r.json()),
+      fetch(location.origin + '/api/kalshi?bust=' + Date.now()).then(r => r.json()),
+      fetch(location.origin + '/api/polymarket?bust=' + Date.now()).then(r => r.json()),
+      fetch(location.origin + '/api/portwatch?bust=' + Date.now()).then(r => r.json()),
     ]);
     const scan = scanRes.status === 'fulfilled' ? scanRes.value : null;
     const news = newsRes.status === 'fulfilled' ? newsRes.value : null;
