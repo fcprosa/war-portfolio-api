@@ -1,14 +1,39 @@
 .env
+codex/understand-codebase-and-tool-functionality-thwxat
+.env.local
+gatto_farioli/.env
+.vercel
+
+# Local databases and generated runtime artifacts
+argos.db
+*.db
+*.sqlite
+gatto_farioli/argos.db
+gatto_farioli/dashboard.html
+
+# Python local state
+
 .vercel
 .env.local
 argos.db
 *.db
 *.sqlite
+main
 __pycache__/
 .pytest_cache/
 .venv/
 venv/
+codex/understand-codebase-and-tool-functionality-thwxat
+gatto_farioli/.venv/
+
+# Generated outputs / logs
 dashboard.html
 *.log
 
+# Node / Vercel dashboard dependencies
+
+dashboard.html
+*.log
+
+main
 node_modules/

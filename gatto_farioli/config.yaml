@@ -1,0 +1,141 @@
+# Gatto Farioli config.yaml
+# User-editable sources, portfolio, theses, tickers, and schedule parameters.
+
+portfolio:
+  positions:
+    - ticker: BRK-B
+      shares: 0.2083
+      avg_cost: 494.75
+      thesis: defensive_anchor
+      conviction: 9
+    - ticker: CF
+      shares: 3.42145951
+      avg_cost: 113.37
+      thesis: fertilizer_2028_scarcity
+      conviction: 8
+    - ticker: IPI
+      shares: 12.4564
+      avg_cost: 37.48
+      thesis: fertilizer_2028_scarcity
+      conviction: 7
+
+  prediction_markets:
+    - platform: kalshi
+      ticker: KXHORMUZNORMAL-26JUN01-T60
+      side: NO
+      contracts: 393.12
+      avg_cost: 0.7631
+      thesis: hormuz_stays_closed_short_term
+
+theses:
+  fertilizer_2028_scarcity:
+    description: |
+      Urea/potash structurally elevated through 2028 due to
+      Middle East fertilizer infrastructure damage + Russia/Belarus
+      sanctions on Western buyers. NDSU projects 13% above pre-crisis
+      through 2028 even if Hormuz opens fast.
+    confirming_signals:
+      - urea_above_500
+      - ipi_above_35
+      - cf_above_115
+      - russia_sanctions_intact
+      - fertilizer_pre_book_rate_below_75pct
+    breaking_signals:
+      - russia_potash_resumes_to_west
+      - urea_below_400
+      - usda_corn_acreage_surprise_up
+      - middle_east_fertilizer_capacity_restored
+
+  hormuz_stays_closed_short_term:
+    description: |
+      Strait of Hormuz 7-day MA transit calls stays below 60
+      through June 30, 2026. Driven by mine clearance timeline
+      (6mo Pentagon estimate), insurance market gridlock, and
+      Iranian command-and-control issues per Sanmar Herald incident.
+    confirming_signals:
+      - portwatch_7dma_below_30
+      - mine_clearance_no_progress
+      - insurance_premiums_above_3pct
+      - iran_us_no_signed_deal
+    breaking_signals:
+      - portwatch_7dma_above_50
+      - signed_deal_announced
+      - insurance_premiums_collapse
+      - mass_vessel_release
+
+watchlist:
+  oil_tankers: [FRO, STNG, INSW, DHT, EURN]
+  fertilizer: [MOS, NTR, CTVA, SMG]
+  defense_us: [LMT, RTX, NOC, GD, HII, TDG]
+  defense_eu: [RHM.DE, AIR.PA, BAESY, SAAB-B.ST]
+  gold: [NEM, GOLD, AEM, KGC, AGI]
+  uranium: [CCJ, UEC, UUUU, NXE]
+  copper: [FCX, BHP, COPX]
+  oil: [XOM, CVX, OXY, MPC, VLO, SLB]
+  etfs: [SPY, QQQ, USO, GLD, SLV, UUP, TLT]
+
+news_sources:
+  tier_1:
+    - https://www.aljazeera.com/xml/rss/all.xml
+    - https://feeds.bbci.co.uk/news/world/rss.xml
+    - https://feeds.bbci.co.uk/news/business/rss.xml
+    - https://www.cnbc.com/id/100727362/device/rss/rss.html
+    - https://www.cnbc.com/id/100003114/device/rss/rss.html
+  tier_2:
+    - https://oilprice.com/rss/main
+    - https://www.argusmedia.com/en/rss
+  twitter_via_nitter:
+    - zerohedge
+    - WallStreetSilv
+    - Doomberg
+    - mark_dow
+    - LizAnnSonders
+    - SoberLook
+    - JavierBlas
+    - LizYoungStrat
+
+keywords_high_priority:
+  - hormuz
+  - iran nuclear
+  - oil supply
+  - fertilizer
+  - urea
+  - potash
+  - tanker rates
+  - VLCC
+  - fed cut
+  - fed hike
+  - cpi
+  - powell
+  - ceasefire
+  - mine clearance
+
+keywords_medium_priority:
+  - oil price
+  - natural gas
+  - gold
+  - copper
+  - rate cut
+  - jobs report
+  - GDP
+  - recession
+
+alerts:
+  price_movement_pct_for_alert: 5.0
+  thesis_break_signals_required: 2
+  prediction_market_move_pts: 10
+  portwatch_7dma_alert_threshold: 40
+
+llm:
+  provider: anthropic
+  model_analysis: claude-sonnet-4-7-20260101
+  model_classification: claude-haiku-4-5-20251001
+  daily_token_budget: 100000
+  monthly_cost_cap_usd: 15
+
+schedule:
+  ingestion_during_market_hours: "*/30 * * * *"
+  ingestion_off_hours: "0 */4 * * *"
+  daily_brief: "0 7 * * *"
+  thesis_review: "0 18 * * *"
+  weekly_deep_review: "0 9 * * SUN"
