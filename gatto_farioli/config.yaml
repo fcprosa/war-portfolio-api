@@ -64,7 +64,7 @@ theses:
       - mass_vessel_release
 
 watchlist:
-  oil_tankers: [FRO, STNG, INSW, DHT, EURN]
+  oil_tankers: [FRO, STNG, INSW, DHT]
   fertilizer: [MOS, NTR, CTVA, SMG]
   defense_us: [LMT, RTX, NOC, GD, HII, TDG]
   defense_eu: [RHM.DE, AIR.PA, BAESY, SAAB-B.ST]
