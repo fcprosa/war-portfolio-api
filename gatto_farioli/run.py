@@ -2,9 +2,10 @@
 
 Flags:
   --health        Print module health and row counts, then exit.
-  --ingest        Run every ingestion source plus position sync (default).
+  --ingest        Run every ingestion source plus scoring + position sync (default).
+  --brief         Generate the Daily Edge Brief; runs ingestion first unless --no-ingest.
+  --no-ingest     Skip ingestion (use existing DB rows; pairs with --brief).
   --dry-run       Fetch and compute, but do not write any DB rows.
-  --no-ingest     Skip ingestion (reserved for future --brief flows).
   --config PATH   Path to config.yaml.
   --db PATH       Path to SQLite DB (defaults to ./argos.db).
 
@@ -83,6 +84,21 @@ async def _run_news(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     return status, message
 
 
+def _run_news_score(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    """Score news rows missing importance/sectors. Deterministic, no LLM."""
+    from analysis.news_score import score_news
+
+    result = score_news(config, db_path=args.db, dry_run=args.dry_run)
+    message = (
+        f"scanned {result.rows_scanned}, scored {result.rows_scored}, "
+        f"skipped {result.rows_skipped}, "
+        f"avg {result.avg_score if result.avg_score is not None else 'n/a'}, "
+        f"max {result.max_score if result.max_score is not None else 'n/a'}"
+    )
+    status = "ok"
+    return status, message
+
+
 def _run_prices(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     """Run yfinance price ingestion."""
     from ingestion.prices import ingest_prices
@@ -144,6 +160,7 @@ async def run_ingestion(args: argparse.Namespace) -> int:
 
     modules: list[tuple[str, callable, bool]] = [
         ("news", _run_news, True),
+        ("news_score", _run_news_score, False),
         ("prices", _run_prices, False),
         ("kalshi", _run_kalshi, False),
         ("state_sync", _run_state_sync, False),
@@ -177,21 +194,54 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
     parser.add_argument("--dry-run", action="store_true", help="Fetch and compute without writing rows")
     parser.add_argument("--health", action="store_true", help="Show local DB/module health and exit")
-    parser.add_argument("--ingest", action="store_true", help="Run news + prices + kalshi + state sync (default)")
-    parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (reserved for future --brief flows)")
+    parser.add_argument("--ingest", action="store_true", help="Run news + scoring + prices + kalshi + state sync (default)")
+    parser.add_argument("--brief", action="store_true", help="Generate the Daily Edge Brief v1 (runs ingestion first unless --no-ingest)")
+    parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (pairs with --brief to use existing DB rows)")
     return parser.parse_args()
+
+
+def run_brief(args: argparse.Namespace) -> int:
+    """Generate and print the Daily Edge Brief. Returns process exit code."""
+    db_path = Path(args.db)
+    init_db(db_path)
+
+    from analysis.brief import generate_daily_brief
+    from config import load_config
+
+    config = load_config(args.config)
+    started = datetime.now(timezone.utc)
+    try:
+        text = generate_daily_brief(config, db_path=db_path, dry_run=args.dry_run)
+    except Exception as exc:  # noqa: BLE001
+        record_run("brief", "error", f"unhandled: {exc}", started, db_path)
+        print(f"ERROR: brief generation failed: {exc}")
+        return 1
+
+    record_run("brief", "ok", "daily_edge_v1 generated", started, db_path)
+    print(text)
+    return 0
 
 
 def main() -> int:
     """Entrypoint used by humans now and cron/launchd in later sessions."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     args = parse_args()
+
     if args.health:
         print_health(Path(args.db))
         return 0
+
+    if args.brief:
+        if not args.no_ingest:
+            ingest_rc = asyncio.run(run_ingestion(args))
+            if ingest_rc != 0:
+                print("Gatto Farioli: ingestion reported errors; continuing into brief with degraded data.")
+        return run_brief(args)
+
     if args.no_ingest:
-        print("Gatto Farioli: --no-ingest set and no other action requested; nothing to do.")
+        print("Gatto Farioli: --no-ingest set without --brief; nothing to do.")
         return 0
+
     return asyncio.run(run_ingestion(args))
 
 

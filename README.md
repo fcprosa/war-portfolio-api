@@ -105,9 +105,21 @@ Both are optional — the dashboard falls back to empty state if not set.
 
 ## Gatto Farioli — current status
 
-Gatto Farioli is at **Session 1: Foundation**. Working now: SQLite schema and DB helpers, config loading from `gatto_farioli/config.yaml`, async tier-1 RSS ingestion, URL-hash dedupe, `python run.py --health` diagnostics.
+Gatto Farioli has shipped **Daily Edge Brief v1**. Run `python run.py --brief` from `gatto_farioli/` to ingest news + prices + Kalshi snapshot + position state and emit a deterministic position-aware markdown brief. All scoring, tagging, signal resolution, and brief composition is rule-based — **no LLM calls in the current build**.
 
-Future sessions will add prices, macro, prediction markets, LLM enrichment, thesis monitoring, Telegram/email output, and Claude-ready briefs.
+What's working:
+
+- Tier-1 RSS ingestion with URL-hash dedupe
+- Deterministic news scoring (importance 0-10) and multi-sector tagging
+- yfinance price ingestion for portfolio + every watchlist group (~35d history)
+- Position sync with mark-to-market joined from latest close
+- Kalshi public-market snapshot ingestion (graceful 404 / network failure)
+- Delta detection (24h news + portfolio/watchlist movers + missing data)
+- Thesis health v1 (ticker-threshold signals resolved; rest honestly marked uncertain)
+- Daily Edge Brief v1 stored in SQLite + printed to stdout
+- 7-check verification harness (`scripts/verify.py`)
+
+Not yet built (deliberately): LLM enrichment, Polymarket ingestion, PortWatch ingestion, Telegram/email alerts. See `gatto_farioli/README.md` for the full capability matrix, daily commands, and inspection queries.
 
 ## Privacy
 

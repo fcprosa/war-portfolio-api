@@ -1,22 +1,30 @@
 # Gatto Farioli — Local Macro Intelligence Engine
 
-Gatto Farioli is the local-first Python engine inside the broader `war-portfolio-api` repo. It is designed to become Daniel's persistent analyst: ingesting free data sources, maintaining local SQLite state, detecting thesis/regime changes, and producing Claude-ready briefs.
+Gatto Farioli is the local-first Python engine inside the broader `war-portfolio-api` repo. It ingests free data sources, maintains local SQLite state, detects thesis changes, and produces deterministic Claude-ready briefs — **no LLM calls in the current build**.
 
 This folder is intentionally self-contained. Run all Python commands from here.
 
-## Session 1 status
+## What works today
 
-Session 1 delivers:
+| Capability | Module | Notes |
+|---|---|---|
+| Tier-1 RSS news ingestion + dedupe | `ingestion/news.py` | Async, URL-hash dedupe, tracking-param stripping. |
+| Deterministic news scoring | `analysis/news_score.py` | 0-10 importance + multi-sector tagging. No LLM. |
+| Equity price ingestion (~35d history) | `ingestion/prices.py` | yfinance; portfolio + every watchlist group. |
+| Position sync (mark-to-market) | `storage/state.py` | Joins latest close → `current_price`/`market_value`/`unrealized_pnl`. |
+| Kalshi public-market snapshot | `ingestion/kalshi.py` | Real `external-api.kalshi.com` endpoint; clean 404/network failure. |
+| Delta detection | `analysis/delta.py` | 24h news + portfolio/watchlist movers + PM snapshot + missing-data. |
+| Thesis health v1 | `analysis/thesis.py` | Resolves `<ticker>_above|below_<N>` signals; everything else honestly marked uncertain. |
+| Daily Edge Brief v1 | `analysis/brief.py` | Markdown brief stored in `briefs` with `type='daily_edge_v1'`. |
+| Verification harness | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
-- Python 3.11+ project skeleton.
-- SQLite schema in `argos.db`.
-- User-editable `config.yaml` for portfolio, theses, watchlist, sources, thresholds, LLM budget, and schedule.
-- Async tier-1 RSS ingestion with `httpx` + `feedparser`.
-- URL-hash dedupe using normalized URLs.
-- Health metadata in the `runs` table.
-- `run.py` orchestrator with `--dry-run` and `--health`.
+## What is intentionally not in this build
 
-LLM enrichment, prices, macro, prediction markets, alerts, Telegram/email, and dashboard output are intentionally left for later sessions.
+- **No LLM calls.** All scoring, tagging, signal resolution, and brief composition are rule-based and free.
+- **No Polymarket ingestion.** Hook exists (`ingestion/polymarket.py` stub) but no live calls.
+- **No PortWatch ingestion.** PortWatch is one signal in a future delta layer; not the centerpiece.
+- **No Telegram / email alerts.** Output goes to stdout + SQLite.
+- **No dashboard changes.** The legacy `index.html` dashboard is untouched.
 
 ## Setup
 
@@ -25,35 +33,93 @@ cd gatto_farioli
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-python run.py
+cp .env.example .env    # optional; only needed once LLM/FRED keys are wired
 ```
 
-## Verify dedupe
-
-Run ingestion twice:
+## Daily commands
 
 ```bash
-python run.py
-python run.py
+# Run all ingestion (news + scoring + prices + kalshi + position sync)
+python run.py --ingest
+
+# Print health summary
 python run.py --health
+
+# Generate and store the Daily Edge Brief (runs ingestion first)
+python run.py --brief
+
+# Generate brief from existing DB only — no network calls
+python run.py --brief --no-ingest
+
+# Dry-run any pipeline (no DB writes)
+python run.py --ingest --dry-run
 ```
 
-The second run should insert far fewer articles because `news.url_hash` is unique.
+`python run.py` with no flags is equivalent to `python run.py --ingest`.
 
-## Inspect the database
+## Verification
+
+```bash
+python scripts/verify.py
+```
+
+Runs a 7-check suite against a temporary DB:
+
+1. config loads cleanly
+2. every schema table is created
+3. RSS URL normalization dedupes tracking params (`utm_*`, `fbclid`, `gclid`)
+4. brief generation does not crash on an empty DB
+5. `--health` prints expected sections
+6. thesis resolver correctly classifies observed/not-observed/uncertain
+7. news scoring writes importance and sectors back to the row
+
+Exit code is non-zero on the first failure.
+
+## Inspecting the database
 
 ```bash
 sqlite3 argos.db
 ```
 
+Useful queries:
+
 ```sql
-SELECT source, title, published_at
+-- Top scored headlines in the last 24h
+SELECT importance, sectors, source, title
 FROM news
-ORDER BY published_at DESC
-LIMIT 20;
+WHERE COALESCE(published_at, ingested_at) >= datetime('now', '-24 hours')
+ORDER BY importance DESC LIMIT 15;
+
+-- Portfolio snapshot
+SELECT ticker, shares, avg_cost, current_price, market_value, unrealized_pnl, thesis
+FROM positions;
+
+-- Latest brief
+SELECT generated_at, substr(content, 1, 200) || '…' AS preview
+FROM briefs ORDER BY generated_at DESC LIMIT 1;
+
+-- Module health
+SELECT module, status, finished_at, message FROM runs ORDER BY module;
 ```
+
+## Using the brief with Claude
+
+The brief ends with a `## 6. Claude Context Block` section. Paste **just that fenced block** into Claude to start a high-context discussion without retyping positions, thesis state, or top headlines. The rest of the brief is for your own reading.
+
+The block is intentionally dense and bracketed-tag formatted (`[positions]`, `[thesis]`, `[predmkt]`, `[news]`, `[missing]`, `[open_questions]`) so Claude can parse it without a system prompt.
+
+## Avoiding noise and token waste
+
+- The brief is fully deterministic — re-running it does not cost tokens.
+- Only paste the **Claude Context Block** into Claude. Section 2-5 are for your eyes.
+- The brief flags missing/unavailable data explicitly. If `[missing]` shows a critical gap, fix the source before asking Claude follow-ups.
+- News rows with `importance < 4` are filtered out of the brief. Only signal-rich headlines hit Claude.
+
+## Known data quality flags
+
+- **Kalshi**: `KXHORMUZNORMAL-26JUN01-T60` currently returns 404 on the public market endpoint. The configured position stays in `config.yaml` and the brief renders it with `Price: unavailable`. Update the ticker when the correct live identifier is known — **do not guess**.
+- **EURN**: removed from `watchlist.oil_tankers` because Yahoo no longer returns data for it.
 
 ## Privacy
 
-All persistent state is local. Session 1 only contacts configured RSS feeds. Future sessions will contact data providers and Anthropic only when those features are enabled.
+All persistent state is local in `gatto_farioli/argos.db` (gitignored). The engine contacts only the configured RSS feeds, yfinance/Yahoo, and the Kalshi public market endpoint. No Anthropic calls are made by the current build.

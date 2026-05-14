@@ -20,9 +20,13 @@ portfolio:
       conviction: 7
 
   prediction_markets:
+    # NOTE: this ticker currently returns 404 from the Kalshi public market
+    # endpoint. The position stays here so the brief shows it, but pricing is
+    # rendered as "price unavailable" until the correct live ticker is set.
+    # Do not guess a replacement — wait for Daniel to confirm.
     - platform: kalshi
       ticker: KXHORMUZNORMAL-26JUN01-T60
-      side: NO
+      side: "NO"   # quoted — YAML 1.1 coerces unquoted NO/YES to bool
       contracts: 393.12
       avg_cost: 0.7631
       thesis: hormuz_stays_closed_short_term
@@ -64,7 +68,7 @@ theses:
       - mass_vessel_release
 
 watchlist:
-  oil_tankers: [FRO, STNG, INSW, DHT]
+  oil_tankers: [FRO, STNG, INSW, DHT]  # EURN removed: delisted on Yahoo
   fertilizer: [MOS, NTR, CTVA, SMG]
   defense_us: [LMT, RTX, NOC, GD, HII, TDG]
   defense_eu: [RHM.DE, AIR.PA, BAESY, SAAB-B.ST]
