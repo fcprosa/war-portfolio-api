@@ -41,9 +41,30 @@ def get_conn(db_path: str | Path = DEFAULT_DB_PATH) -> Iterator[sqlite3.Connecti
         conn.close()
 
 
+_OPPORTUNITY_V2_COLUMNS = frozenset({
+    "candidate_key", "title", "summary", "source_type", "related_ticker",
+    "related_market_ticker", "related_narrative_id", "score", "confidence",
+    "action", "signals_count", "missing_data", "evidence", "created_at",
+    "last_seen", "status",
+})
+
+
+def _migrate_opportunity_candidates(conn: sqlite3.Connection) -> None:
+    """Drop legacy opportunity_candidates tables that predate Phase D schema."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='opportunity_candidates'"
+    ).fetchone()
+    if not row:
+        return
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(opportunity_candidates)")}
+    if cols and not _OPPORTUNITY_V2_COLUMNS.issubset(cols):
+        conn.execute("DROP TABLE IF EXISTS opportunity_candidates")
+
+
 def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> None:
     """Create every table and index required by the local intelligence system."""
     with get_conn(db_path) as conn:
+        _migrate_opportunity_candidates(conn)
         conn.executescript(SCHEMA_SQL)
 
 

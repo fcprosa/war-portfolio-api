@@ -18,6 +18,7 @@ EXPECTED_TABLES = (
     "briefs",
     "runs",
     "narrative_clusters",
+    "opportunity_candidates",
     "market_universe",
     "source_health",
 )

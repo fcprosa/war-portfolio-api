@@ -148,6 +148,32 @@ CREATE TABLE IF NOT EXISTS narrative_clusters (
 CREATE INDEX IF NOT EXISTS idx_narrative_last_seen ON narrative_clusters(last_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_narrative_status ON narrative_clusters(status);
 
+-- Scored opportunity memory (Phase D). One row per stable candidate_key; reruns
+-- refresh score/action/last_seen without duplicating.
+CREATE TABLE IF NOT EXISTS opportunity_candidates (
+    id INTEGER PRIMARY KEY,
+    candidate_key TEXT UNIQUE NOT NULL,
+    title TEXT,
+    summary TEXT,
+    source_type TEXT,
+    related_ticker TEXT,
+    related_market_ticker TEXT,
+    related_narrative_id INTEGER,
+    score REAL,
+    confidence REAL,
+    action TEXT,
+    signals_count INTEGER,
+    missing_data TEXT,
+    evidence TEXT,
+    created_at TIMESTAMP,
+    last_seen TIMESTAMP,
+    status TEXT DEFAULT 'open'
+);
+
+CREATE INDEX IF NOT EXISTS idx_opportunity_action ON opportunity_candidates(action);
+CREATE INDEX IF NOT EXISTS idx_opportunity_score ON opportunity_candidates(score DESC);
+CREATE INDEX IF NOT EXISTS idx_opportunity_last_seen ON opportunity_candidates(last_seen DESC);
+
 -- Current-state view of every discovered Kalshi / Polymarket / equity-watch
 -- market. prediction_markets stays as the time-series snapshot table;
 -- market_universe is "what is open right now, categorized".

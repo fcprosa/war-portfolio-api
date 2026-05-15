@@ -70,6 +70,7 @@ def print_health(db_path: str | Path) -> None:
         "positions": query_one("SELECT COUNT(*) AS n FROM positions", db_path=db_path)["n"],
         "prediction_markets": query_one("SELECT COUNT(*) AS n FROM prediction_markets", db_path=db_path)["n"],
         "narrative_clusters": query_one("SELECT COUNT(*) AS n FROM narrative_clusters", db_path=db_path)["n"],
+        "opportunity_candidates": query_one("SELECT COUNT(*) AS n FROM opportunity_candidates", db_path=db_path)["n"],
         "market_universe": query_one("SELECT COUNT(*) AS n FROM market_universe", db_path=db_path)["n"],
         "alerts": query_one("SELECT COUNT(*) AS n FROM alerts", db_path=db_path)["n"],
         "briefs": query_one("SELECT COUNT(*) AS n FROM briefs", db_path=db_path)["n"],
@@ -203,6 +204,19 @@ def _run_kalshi_discovery(config: dict, args: argparse.Namespace) -> tuple[str, 
     return "ok", message
 
 
+def _run_opportunities(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    """Score and persist opportunity candidates (Phase D)."""
+    from analysis.opportunities import score_opportunities
+
+    result = score_opportunities(config, db_path=args.db, dry_run=args.dry_run)
+    by_action = ", ".join(f"{k}={v}" for k, v in sorted(result.by_action.items())) or "-"
+    message = (
+        f"candidates {result.candidates_scored}, inserted {result.inserted}, "
+        f"updated {result.updated}; actions [{by_action}]"
+    )
+    return "ok", message
+
+
 def _run_state_sync(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     from storage.state import sync_positions
 
@@ -261,6 +275,7 @@ async def run_ingestion(args: argparse.Namespace) -> int:
         ("prices", _run_prices, False),
         ("kalshi", _run_kalshi, False),
         ("kalshi_discovery", _run_kalshi_discovery, False),
+        ("opportunities", _run_opportunities, False),
         ("state_sync", _run_state_sync, False),
     ]
     return await _run_modules(args, modules)

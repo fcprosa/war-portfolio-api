@@ -68,7 +68,7 @@ def check_db_initializes(tmp_db: Path) -> None:
     expected_tables = (
         "news", "prices", "macro", "prediction_markets",
         "portwatch", "positions", "theses", "alerts", "briefs", "runs",
-        "narrative_clusters", "market_universe", "source_health",
+        "narrative_clusters", "opportunity_candidates", "market_universe", "source_health",
     )
     for table in expected_tables:
         row = query_one(
@@ -326,7 +326,86 @@ def check_source_health(tmp_db: Path) -> None:
     assert broken["failure_count"] >= 2, f"failure_count not bumped: {broken}"
 
 
-# ── 13. News scoring writes back importance + sectors ──────────────────────
+# ── 13. Opportunity candidates upsert without duplicating ─────────────────
+def check_opportunity_upsert_idempotent(tmp_db: Path) -> None:
+    from analysis.opportunities import ACTION_WATCH, upsert_opportunity_candidates, _Candidate
+    from storage.db import init_db, query_one
+
+    init_db(tmp_db)
+    c = _Candidate(
+        candidate_key="equity:VERIFY",
+        title="Verify",
+        summary="",
+        source_type="equity",
+        related_ticker="VERIFY",
+        related_market_ticker=None,
+        related_narrative_id=None,
+        score=40.0,
+        confidence=4.0,
+        action=ACTION_WATCH,
+        signals_count=1,
+        missing_data=[],
+        evidence={},
+    )
+    upsert_opportunity_candidates([c], tmp_db)
+    c.score = 55.0
+    upsert_opportunity_candidates([c], tmp_db)
+    n = query_one("SELECT COUNT(*) AS n FROM opportunity_candidates", db_path=tmp_db)["n"]
+    assert n == 1, f"expected 1 row, got {n}"
+
+
+def check_opportunity_action_guards(tmp_db: Path) -> None:
+    from analysis.opportunities import ACTION_POSSIBLE_TRADE, score_opportunities
+    from config import load_config
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            "INSERT INTO news (url_hash, url, source, title, summary, sectors, importance, published_at) "
+            "VALUES ('only', 'https://x/o', 'X', 'One headline oil move', 'text', 'oil', 8.0, ?)",
+            (now,),
+        )
+        conn.execute(
+            """
+            INSERT INTO narrative_clusters (
+                cluster_key, title, summary, sectors, first_seen, last_seen,
+                article_count, avg_importance, max_importance, momentum_24h, momentum_7d,
+                status, related_tickers, related_markets, updated_at
+            ) VALUES (
+                'nar_only', 'Broad oil narrative only', '{}', '["oil"]',
+                ?, ?, 10, 5.0, 6.0, 2.0, 1.0, 'active', '[]', '[]', ?
+            )
+            """,
+            (now, now, now),
+        )
+        conn.execute(
+            """
+            INSERT INTO market_universe (
+                platform, symbol, title, category, status, volume_24h,
+                yes_price, no_price, discovered_at, updated_at, metadata
+            ) VALUES (
+                'kalshi', 'KX-POL-HIGH', 'Presidential market', 'politics', 'open', 99999,
+                0.4, 0.6, datetime('now'), datetime('now'), '{}'
+            )
+            """
+        )
+    score_opportunities(cfg, db_path=tmp_db)
+    from storage.db import query_one as q1
+
+    for key in ("equity:CVX", "kalshi:KX-POL-HIGH"):
+        row = q1(
+            "SELECT action FROM opportunity_candidates WHERE candidate_key = ?",
+            (key,),
+            db_path=tmp_db,
+        )
+        if row:
+            assert row["action"] != ACTION_POSSIBLE_TRADE, f"{key} must not be POSSIBLE_TRADE"
+
+
+# ── 14. News scoring writes back importance + sectors ──────────────────────
 def check_news_scoring(tmp_db: Path) -> None:
     from analysis.news_score import score_news
     from config import load_config
@@ -375,6 +454,8 @@ def main() -> int:
         _check("kalshi categorizer maps known buckets", check_kalshi_categorizer)
         _check("kalshi sports excluded by default config", check_kalshi_sports_excluded_by_default)
         _check("source_health surfaces unhealthy sources", lambda: check_source_health(tmp_db))
+        _check("opportunity upsert updates last_seen not duplicate", lambda: check_opportunity_upsert_idempotent(tmp_db))
+        _check("opportunity action guards block weak POSSIBLE_TRADE", lambda: check_opportunity_action_guards(tmp_db))
         _check("news scoring writes importance + sectors", lambda: check_news_scoring(tmp_db))
 
     total = len(PASSED) + len(FAILED)
