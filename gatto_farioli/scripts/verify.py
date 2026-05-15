@@ -68,6 +68,7 @@ def check_db_initializes(tmp_db: Path) -> None:
     expected_tables = (
         "news", "prices", "macro", "prediction_markets",
         "portwatch", "positions", "theses", "alerts", "briefs", "runs",
+        "narrative_clusters", "market_universe", "source_health",
     )
     for table in expected_tables:
         row = query_one(
@@ -125,7 +126,7 @@ def check_health_runs(tmp_db: Path) -> None:
         print_health(tmp_db)
     output = buf.getvalue()
     assert "Gatto Farioli health" in output, "--health missing header"
-    for table in ("news", "prices", "positions", "prediction_markets"):
+    for table in ("news", "prices", "positions", "prediction_markets", "narrative_clusters", "market_universe"):
         assert f"{table}:" in output, f"--health output missing '{table}:' line"
 
 
@@ -149,7 +150,183 @@ def check_thesis_signal_resolver(tmp_db: Path) -> None:
     assert uncertain.state == "uncertain", f"expected uncertain, got {uncertain.state}"
 
 
-# ── 7. News scoring writes back importance + sectors ───────────────────────
+# ── 7. init_db is idempotent for Phase A–C tables ─────────────────────────
+def check_init_db_idempotent(tmp_db: Path) -> None:
+    from storage.db import init_db, query_one
+
+    init_db(tmp_db)
+    init_db(tmp_db)
+    for table in ("narrative_clusters", "market_universe", "source_health"):
+        row = query_one(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+            (table,),
+            db_path=tmp_db,
+        )
+        assert row is not None, f"{table} missing after double init_db"
+
+
+# ── 8. Narrative clustering merges repeated headlines ────────────────────
+def check_narrative_clustering(tmp_db: Path) -> None:
+    from analysis.narratives import build_narrative_clusters
+    from analysis.news_score import score_news
+    from config import load_config
+    from storage.db import get_conn, init_db, query_one
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+
+    # Insert 4 near-duplicate Hormuz/oil headlines plus 2 unrelated ones to
+    # confirm clustering keeps unrelated stories in their own buckets.
+    rows = [
+        ("u1", "https://x.example/1", "Reuters",
+         "Oil prices jump on Hormuz tensions as US pressures Iran",
+         "Crude markets reacted sharply to renewed Hormuz strait risk.",
+         "2026-05-14T12:00:00+00:00"),
+        ("u2", "https://x.example/2", "Bloomberg",
+         "Brent crude rises again on Hormuz disruption fears",
+         "Brent climbed as Hormuz transit fears intensified.",
+         "2026-05-14T14:00:00+00:00"),
+        ("u3", "https://x.example/3", "FT",
+         "Iran-Hormuz crisis pushes oil higher for third day",
+         "Oil supply concerns mount over Hormuz blockade scenario.",
+         "2026-05-14T16:00:00+00:00"),
+        ("u4", "https://x.example/4", "WSJ",
+         "Hormuz oil chokepoint risk keeps crude prices elevated",
+         "Tanker insurers warn of Hormuz transit risk premium.",
+         "2026-05-14T18:00:00+00:00"),
+        # Unrelated to oil/Hormuz — should land in its own cluster.
+        ("u5", "https://x.example/5", "CNBC",
+         "Fed officials signal patience on rate cuts as CPI ticks higher",
+         "FOMC commentary suggests Fed will hold rates as inflation persists.",
+         "2026-05-14T13:00:00+00:00"),
+        ("u6", "https://x.example/6", "CNBC",
+         "CPI surprise pushes Fed rate-cut bets out further",
+         "Treasury yields rose after the CPI print exceeded expectations.",
+         "2026-05-14T15:00:00+00:00"),
+    ]
+    with get_conn(tmp_db) as conn:
+        for url_hash, url, source, title, summary, published in rows:
+            conn.execute(
+                "INSERT INTO news (url_hash, url, source, title, summary, published_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (url_hash, url, source, title, summary, published),
+            )
+
+    # Score so sectors get populated (clustering needs at least one sector).
+    score_news(cfg, db_path=tmp_db)
+    result = build_narrative_clusters(cfg, db_path=tmp_db)
+
+    assert result.articles_scanned == 6, f"expected 6, got {result.articles_scanned}"
+    # Hormuz/oil group should merge to a single cluster; CPI/Fed group should
+    # form its own. So the test expects ≤ 4 clusters total (often 2).
+    assert result.clusters_total <= 4, f"too many clusters: {result.clusters_total}"
+
+    # Confirm the largest cluster swallowed at least 3 of the 4 Hormuz headlines.
+    largest = query_one(
+        "SELECT article_count FROM narrative_clusters ORDER BY article_count DESC LIMIT 1",
+        db_path=tmp_db,
+    )
+    assert largest is not None and largest["article_count"] >= 3, (
+        f"largest cluster has {largest['article_count'] if largest else 'no'} articles; expected ≥ 3"
+    )
+
+
+# ── 9. Narrative status values are represented ────────────────────────────
+def check_narrative_status_values(tmp_db: Path) -> None:
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    allowed = {"emerging", "active", "fading", "resolved"}
+    with get_conn(tmp_db) as conn:
+        for status in allowed:
+            conn.execute(
+                """
+                INSERT INTO narrative_clusters (
+                    cluster_key, title, summary, sectors,
+                    first_seen, last_seen, article_count,
+                    avg_importance, max_importance,
+                    momentum_24h, momentum_7d, status,
+                    related_tickers, related_markets, updated_at
+                ) VALUES (?, ?, '{}', '[]', ?, ?, 1, 1.0, 1.0, 1.0, 1.0, ?, '[]', '[]', ?)
+                """,
+                (f"key_{status}", f"title {status}", "2026-05-01T00:00:00+00:00",
+                 "2026-05-14T00:00:00+00:00", status, "2026-05-14T00:00:00+00:00"),
+            )
+        rows = conn.execute("SELECT DISTINCT status FROM narrative_clusters").fetchall()
+    found = {r["status"] for r in rows}
+    assert found == allowed, f"unexpected narrative statuses: {found}"
+
+
+# ── 10. Kalshi categorizer maps known buckets correctly ───────────────────
+def check_kalshi_categorizer() -> None:
+    from ingestion.kalshi import categorize_kalshi_event
+
+    cases = [
+        ({"category": "Sports", "title": "MLB game outcome"}, "sports"),
+        ({"category": "Climate and Weather", "title": "Hottest day of the year"}, "weather"),
+        ({"category": "Politics", "title": "2026 senate race"}, "politics"),
+        ({"category": "Economics", "title": "Will CPI exceed 3% in May 2026"}, "inflation"),
+        ({"category": "Economics", "title": "Will Fed cut rates in June"}, "rates"),
+        ({"category": "Financials", "title": "S&P 500 close"}, "macro"),
+        ({"category": "World", "title": "Iran/Hormuz incident"}, "geopolitics"),
+        ({"category": None, "title": "Bitcoin price by year end"}, "crypto"),
+        ({"category": "Health", "title": "Random health story"}, "other"),
+    ]
+    for event, expected in cases:
+        got = categorize_kalshi_event(event)
+        assert got == expected, f"categorize({event}) = {got!r}, expected {expected!r}"
+
+
+# ── 11. Sports markets are excluded under default config ──────────────────
+def check_kalshi_sports_excluded_by_default() -> None:
+    from ingestion.kalshi import filter_kalshi_events
+    from config import load_config
+
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    kalshi_cfg = cfg.get("kalshi") or {}
+    inc = kalshi_cfg.get("include_categories") or []
+    exc = kalshi_cfg.get("exclude_categories") or []
+    assert "sports" in exc, f"sports must be excluded by default; got exclude={exc}"
+
+    events = [
+        {"category": "Sports", "title": "MLB game outcome"},
+        {"category": "Politics", "title": "Senate race"},
+        {"category": "Climate and Weather", "title": "Hurricane season count"},
+    ]
+    filtered = filter_kalshi_events(events, include_categories=inc, exclude_categories=exc)
+    cats = [c for _, c in filtered]
+    assert "sports" not in cats, f"sports leaked through default filter: {cats}"
+    assert "politics" in cats and "weather" in cats, f"non-sports dropped: {cats}"
+
+
+# ── 12. source_health upserts and surfaces unhealthy sources ──────────────
+def check_source_health(tmp_db: Path) -> None:
+    from storage.db import init_db
+    from storage.source_health import (
+        list_unhealthy,
+        record_failure,
+        record_success,
+    )
+
+    init_db(tmp_db)
+
+    record_success("http://feed.example/ok", "first ok", db_path=tmp_db)
+    record_failure("http://feed.example/broken", "timeout", db_path=tmp_db)
+    record_failure("http://feed.example/broken", "timeout again", db_path=tmp_db)
+    record_success("http://feed.example/recovered", "200", db_path=tmp_db)
+    record_failure("http://feed.example/recovered", "500 later", db_path=tmp_db)
+
+    unhealthy = list_unhealthy(db_path=tmp_db)
+    sources = {r["source"] for r in unhealthy}
+    assert "http://feed.example/broken" in sources, "consistently-failing source missing"
+    assert "http://feed.example/recovered" in sources, "source with recent failure missing"
+    assert "http://feed.example/ok" not in sources, "healthy source surfaced as unhealthy"
+
+    broken = next(r for r in unhealthy if r["source"] == "http://feed.example/broken")
+    assert broken["failure_count"] >= 2, f"failure_count not bumped: {broken}"
+
+
+# ── 13. News scoring writes back importance + sectors ──────────────────────
 def check_news_scoring(tmp_db: Path) -> None:
     from analysis.news_score import score_news
     from config import load_config
@@ -192,6 +369,12 @@ def main() -> int:
         _check("brief generation does not crash on empty db", lambda: check_brief_on_empty_db(tmp_db))
         _check("--health prints expected sections", lambda: check_health_runs(tmp_db))
         _check("thesis resolver handles ticker/uncertain patterns", lambda: check_thesis_signal_resolver(tmp_db))
+        _check("init_db idempotent for Phase A–C tables", lambda: check_init_db_idempotent(tmp_db))
+        _check("narrative clustering merges repeated headlines", lambda: check_narrative_clustering(tmp_db))
+        _check("narrative status values (emerging/active/fading/resolved)", lambda: check_narrative_status_values(tmp_db))
+        _check("kalshi categorizer maps known buckets", check_kalshi_categorizer)
+        _check("kalshi sports excluded by default config", check_kalshi_sports_excluded_by_default)
+        _check("source_health surfaces unhealthy sources", lambda: check_source_health(tmp_db))
         _check("news scoring writes importance + sectors", lambda: check_news_scoring(tmp_db))
 
     total = len(PASSED) + len(FAILED)

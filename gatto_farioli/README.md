@@ -16,6 +16,9 @@ This folder is intentionally self-contained. Run all Python commands from here.
 | Delta detection | `analysis/delta.py` | 24h news + portfolio/watchlist movers + PM snapshot + missing-data. |
 | Thesis health v1 | `analysis/thesis.py` | Resolves `<ticker>_above|below_<N>` signals; everything else honestly marked uncertain. |
 | Daily Edge Brief v1 | `analysis/brief.py` | Markdown brief stored in `briefs` with `type='daily_edge_v1'`. |
+| **Narrative memory** | `analysis/narratives.py` | Deterministic story clusters (`emerging` / `active` / `fading` / `resolved`). |
+| **Kalshi market universe** | `ingestion/kalshi.py` | Events API discovery → `market_universe` (sports excluded by default). |
+| **Source health** | `storage/source_health.py` | Per-feed / per-endpoint success/failure tracking. |
 | Verification harness | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
@@ -39,7 +42,7 @@ cp .env.example .env    # optional; only needed once LLM/FRED keys are wired
 ## Daily commands
 
 ```bash
-# Run all ingestion (news + scoring + prices + kalshi + position sync)
+# Run all ingestion (news + scoring + narratives + prices + kalshi + universe + state sync)
 python run.py --ingest
 
 # Print health summary

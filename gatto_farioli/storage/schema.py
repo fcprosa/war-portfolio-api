@@ -119,4 +119,69 @@ CREATE TABLE IF NOT EXISTS runs (
     started_at TIMESTAMP NOT NULL,
     finished_at TIMESTAMP NOT NULL
 );
+
+-- Rolling narrative memory across days/weeks/months.
+-- One row per story cluster. cluster_key is a deterministic hash of the
+-- cluster's top distinctive terms + sectors. Article membership is recomputed
+-- on every build_narrative_clusters() run (we do not store a junction table
+-- yet); the cluster signature (top_terms list) is packed into `summary` as
+-- JSON so the matcher can recover it without a schema change.
+CREATE TABLE IF NOT EXISTS narrative_clusters (
+    id INTEGER PRIMARY KEY,
+    cluster_key TEXT UNIQUE,
+    title TEXT,
+    summary TEXT,
+    sectors TEXT,
+    first_seen TIMESTAMP,
+    last_seen TIMESTAMP,
+    article_count INTEGER,
+    avg_importance REAL,
+    max_importance REAL,
+    momentum_24h REAL,
+    momentum_7d REAL,
+    status TEXT,
+    related_tickers TEXT,
+    related_markets TEXT,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_narrative_last_seen ON narrative_clusters(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_narrative_status ON narrative_clusters(status);
+
+-- Current-state view of every discovered Kalshi / Polymarket / equity-watch
+-- market. prediction_markets stays as the time-series snapshot table;
+-- market_universe is "what is open right now, categorized".
+CREATE TABLE IF NOT EXISTS market_universe (
+    platform TEXT,
+    symbol TEXT,
+    title TEXT,
+    category TEXT,
+    status TEXT,
+    liquidity REAL,
+    volume_24h REAL,
+    open_interest REAL,
+    last_price REAL,
+    yes_price REAL,
+    no_price REAL,
+    closes_at TIMESTAMP,
+    discovered_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    metadata TEXT,
+    PRIMARY KEY (platform, symbol)
+);
+
+CREATE INDEX IF NOT EXISTS idx_universe_category ON market_universe(category);
+CREATE INDEX IF NOT EXISTS idx_universe_updated ON market_universe(updated_at DESC);
+
+-- Per-source health record. Aggregate, not per-failure-log. Lets the radar
+-- and --health surface 'this RSS feed has been failing for 3 days' without
+-- scanning every runs row.
+CREATE TABLE IF NOT EXISTS source_health (
+    source TEXT PRIMARY KEY,
+    status TEXT,
+    last_success TIMESTAMP,
+    last_failure TIMESTAMP,
+    failure_count INTEGER DEFAULT 0,
+    message TEXT
+);
 """

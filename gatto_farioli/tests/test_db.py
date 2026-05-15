@@ -5,7 +5,7 @@ from __future__ import annotations
 from storage.db import init_db, query_one
 from storage.schema import SCHEMA_SQL
 
-# Session 1 schema tables only (see storage/schema.py).
+# Session 1 core tables plus Phase A–C memory/universe/health tables.
 EXPECTED_TABLES = (
     "news",
     "prices",
@@ -17,6 +17,9 @@ EXPECTED_TABLES = (
     "alerts",
     "briefs",
     "runs",
+    "narrative_clusters",
+    "market_universe",
+    "source_health",
 )
 
 

@@ -130,6 +130,29 @@ alerts:
   prediction_market_move_pts: 10
   portwatch_7dma_alert_threshold: 40
 
+# Kalshi market-universe discovery.
+# The events endpoint exposes Kalshi's real category strings; we normalize
+# them into the canonical set below and filter by include/exclude lists.
+# Sports is excluded by default — flip it by removing 'sports' from
+# exclude_categories AND/OR adding it to include_categories.
+kalshi:
+  include_categories:
+    - macro
+    - rates
+    - inflation
+    - commodities
+    - energy
+    - geopolitics
+    - economics
+    - politics
+    - weather
+    - crypto
+  exclude_categories:
+    - sports
+  min_volume_24h: 0
+  min_open_interest: 0
+  max_markets_per_run: 500
+
 llm:
   provider: anthropic
   model_analysis: claude-sonnet-4-7-20260101
