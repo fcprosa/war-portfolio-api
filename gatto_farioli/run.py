@@ -1,5 +1,13 @@
 """Main orchestrator for the Gatto Farioli local intelligence system.
 
+Run from ``gatto_farioli/``::
+
+    python run.py --health
+
+From the repo root::
+
+    python -m gatto_farioli.run --health
+
 Flags:
   --health        Print module health and row counts, then exit.
   --ingest        Run every ingestion source plus scoring + position sync (default).
@@ -14,6 +22,13 @@ Every ingestion module is wrapped in try/except so a failing source records
 """
 
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+_PKG_DIR = _Path(__file__).resolve().parent
+if str(_PKG_DIR) not in sys.path:
+    sys.path.insert(0, str(_PKG_DIR))
 
 import argparse
 import asyncio

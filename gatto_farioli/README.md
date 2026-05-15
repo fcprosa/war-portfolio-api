@@ -59,6 +59,26 @@ python run.py --ingest --dry-run
 
 ## Verification
 
+### Automated tests (Session 1 foundation)
+
+From `gatto_farioli/` with the venv active:
+
+```bash
+pip install -r requirements.txt   # includes pytest + pytest-asyncio
+pytest                            # unit tests, no network
+```
+
+From the **repo root**:
+
+```bash
+cd gatto_farioli && pytest
+python -m gatto_farioli.run --health
+```
+
+Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` parsing, `upsert_news` duplicate handling, `init_db` schema creation, and `--health` output. RSS ingestion tests mock HTTP — no live feed calls.
+
+### Integration harness
+
 ```bash
 python scripts/verify.py
 ```

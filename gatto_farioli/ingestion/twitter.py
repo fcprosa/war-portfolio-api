@@ -1,6 +1,10 @@
-"""Optional later placeholder for Nitter RSS ingestion."""
+"""Twitter / Nitter ingestion — optional later work.
+
+Not wired into ``run.py``. RSS tier-1 feeds cover the Session 1 news surface;
+social ingestion would add noise without a dedicated filter layer.
+"""
 
 
-def ingest_twitter_rss(*args, **kwargs):
-    """Ingest Nitter RSS feeds in a later session; intentionally not implemented now."""
-    raise NotImplementedError("Twitter/Nitter ingestion is optional later work")
+def ingest_twitter(*args, **kwargs) -> None:
+    """No-op until optional social ingestion is implemented."""
+    return None

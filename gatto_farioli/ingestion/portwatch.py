@@ -1,6 +1,10 @@
-"""Session 2 placeholder for IMF PortWatch chokepoint data."""
+"""PortWatch ingestion — reserved for Session 2.
+
+Not wired into ``run.py`` yet. PortWatch is one signal in the delta layer, not
+the centerpiece of the engine; this stub documents the intended hook point.
+"""
 
 
-def ingest_portwatch(*args, **kwargs):
-    """Ingest PortWatch data in Session 2; intentionally not implemented in Session 1."""
-    raise NotImplementedError("PortWatch ingestion is scheduled for Session 2")
+def ingest_portwatch(*args, **kwargs) -> None:
+    """No-op until Session 2 implements PortWatch pulls."""
+    return None

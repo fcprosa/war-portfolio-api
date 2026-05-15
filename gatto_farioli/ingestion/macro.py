@@ -1,6 +1,10 @@
-"""Session 2 placeholder for FRED and custom macro ingestion."""
+"""Macro data ingestion — reserved for Session 2 (FRED / custom indicators).
+
+Not wired into ``run.py`` yet. Kept as a package anchor so Session 2 can add
+``ingest_macro()`` without reshuffling the ingestion layout.
+"""
 
 
-def ingest_macro(*args, **kwargs):
-    """Ingest macro indicators in Session 2; intentionally not implemented in Session 1."""
-    raise NotImplementedError("Macro ingestion is scheduled for Session 2")
+def ingest_macro(*args, **kwargs) -> None:
+    """No-op until Session 2 implements FRED ingestion."""
+    return None

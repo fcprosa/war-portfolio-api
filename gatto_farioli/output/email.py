@@ -1,6 +1,9 @@
-"""Session 5 placeholder for Gmail SMTP output."""
+"""Email delivery — reserved for Session 5.
+
+Not wired into ``run.py``. Briefs currently go to stdout + SQLite only.
+"""
 
 
-def send_email_digest(*args, **kwargs):
-    """Send an email digest in Session 5."""
-    raise NotImplementedError("Email output is scheduled for Session 5")
+def send_email(*args, **kwargs) -> None:
+    """No-op until Session 5 implements outbound email."""
+    return None

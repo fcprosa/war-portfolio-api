@@ -1,6 +1,10 @@
-"""Session 2 placeholder for Polymarket market snapshots."""
+"""Polymarket ingestion — reserved for Session 2.
+
+Not wired into ``run.py`` yet. Kept so prediction-market discovery can share
+the same ``ingestion/`` layout as Kalshi without a folder restructure later.
+"""
 
 
-def ingest_polymarket_markets(*args, **kwargs):
-    """Ingest Polymarket markets in Session 2; intentionally not implemented in Session 1."""
-    raise NotImplementedError("Polymarket ingestion is scheduled for Session 2")
+def ingest_polymarket(*args, **kwargs) -> None:
+    """No-op until Session 2 implements Polymarket snapshots."""
+    return None

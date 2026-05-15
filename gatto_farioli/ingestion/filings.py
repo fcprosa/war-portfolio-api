@@ -1,6 +1,10 @@
-"""Optional later placeholder for SEC EDGAR filing ingestion."""
+"""SEC EDGAR filing ingestion — optional later work.
+
+Not wired into ``run.py``. Filings are lower priority than RSS + prices for
+the current build; kept as a named hook for a future session.
+"""
 
 
-def ingest_filings(*args, **kwargs):
-    """Ingest SEC filings in a later session; intentionally not implemented now."""
-    raise NotImplementedError("SEC filing ingestion is optional later work")
+def ingest_filings(*args, **kwargs) -> None:
+    """No-op until optional filing ingestion is implemented."""
+    return None

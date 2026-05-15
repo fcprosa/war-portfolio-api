@@ -1,6 +1,10 @@
-"""Session 4 placeholder for alert generation."""
+"""Alert generation — reserved for Session 4.
+
+Not wired into ``run.py`` yet. Alerts depend on delta + thesis modules being
+stable; this stub marks where ``generate_alerts()`` will live.
+"""
 
 
-def generate_alerts(*args, **kwargs):
-    """Generate alerts from deltas and thesis state in Session 4."""
-    raise NotImplementedError("Alert generation is scheduled for Session 4")
+def generate_alerts(*args, **kwargs) -> list:
+    """No-op until Session 4; returns an empty alert list."""
+    return []
