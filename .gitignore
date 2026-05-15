@@ -10,6 +10,8 @@ argos.db
 *.db
 *.sqlite
 gatto_farioli/argos.db
+gatto_farioli/user_state.yaml
+gatto_farioli/user_state.yaml.tmp
 gatto_farioli/dashboard.html
 
 # Python local state
