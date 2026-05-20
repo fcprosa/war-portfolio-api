@@ -184,6 +184,43 @@ def _run_kalshi(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     return status, message
 
 
+def _run_polymarket(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    from ingestion.polymarket import ingest_polymarket_markets
+
+    result = ingest_polymarket_markets(config, db_path=args.db, dry_run=args.dry_run)
+    if result.markets_attempted == 0:
+        return "skipped", "no polymarket markets configured"
+    message = (
+        f"markets {result.markets_succeeded}/{result.markets_attempted}, "
+        f"snapshots {result.snapshots_inserted}, failures {len(result.failures)}"
+    )
+    status = "ok" if result.markets_succeeded else "error"
+    for f in result.failures:
+        print(f"  WARN polymarket market failed: {f['ticker']} — {f['error']}")
+    return status, message
+
+
+def _run_polymarket_discovery(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    """Discover the open Polymarket market universe via Gamma API."""
+    from ingestion.polymarket import discover_polymarket_universe
+
+    result = discover_polymarket_universe(config, db_path=args.db, dry_run=args.dry_run)
+    cat_summary = ", ".join(f"{k}={v}" for k, v in sorted(result.by_category.items())) or "-"
+    message = (
+        f"events {result.events_matched}/{result.events_scanned} on {result.pages_fetched} page(s), "
+        f"markets {result.markets_matched}/{result.markets_scanned}, "
+        f"universe upserted={result.universe_upserted} purged={result.universe_purged}, "
+        f"snapshots {result.snapshots_inserted}, by_cat[{cat_summary}], "
+        f"failures {len(result.failures)}"
+    )
+    if result.failures:
+        for f in result.failures:
+            print(f"  WARN polymarket_discovery: {f.get('endpoint', '?')} — {f.get('error')}")
+        if result.markets_matched == 0:
+            return "error", message
+    return "ok", message
+
+
 def _run_kalshi_discovery(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     """Discover the open Kalshi market universe (events → markets → category)."""
     from ingestion.kalshi import discover_market_universe
@@ -276,6 +313,8 @@ async def run_ingestion(args: argparse.Namespace) -> int:
         ("prices", _run_prices, False),
         ("kalshi", _run_kalshi, False),
         ("kalshi_discovery", _run_kalshi_discovery, False),
+        ("polymarket", _run_polymarket, False),
+        ("polymarket_discovery", _run_polymarket_discovery, False),
         ("opportunities", _run_opportunities, False),
         ("state_sync", _run_state_sync, False),
     ]

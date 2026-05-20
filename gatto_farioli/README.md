@@ -23,12 +23,12 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Source health** (Phase C) | `storage/source_health.py` | Per-feed / per-endpoint success/failure tracking. |
 | **Opportunity scoring foundation** (Phase D) | `analysis/opportunities.py` | `opportunity_candidates` upsert-by-key, deterministic v2 scoring, hard `POSSIBLE_TRADE` gates (score / confidence / signals / tradable instrument / multi-source evidence). |
 | **Daily Radar** (Phase E) | `analysis/radar.py` | Deterministic markdown over existing tables; stored in `briefs` with `type='edge_radar_v1'`. |
-| Verification harness (17 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Polymarket ingestion + universe** (Phase F) | `ingestion/polymarket.py` | Gamma API snapshots + `market_universe` discovery (`platform='polymarket'`); sports excluded by default. |
+| Verification harness (19 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
 - **No LLM calls.** All scoring, tagging, signal resolution, and brief composition are rule-based and free.
-- **No Polymarket ingestion.** Hook exists (`ingestion/polymarket.py` stub) but no live calls.
 - **No PortWatch ingestion.** PortWatch is one signal in a future delta layer; not the centerpiece.
 - **No Telegram / email alerts.** Output goes to stdout + SQLite.
 - **No dashboard changes.** The legacy `index.html` dashboard is untouched.
@@ -98,7 +98,7 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 17-check suite against a temporary DB:
+Runs a 19-check suite against a temporary DB:
 
 1. config loads cleanly
 2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`)
@@ -117,8 +117,10 @@ Runs a 17-check suite against a temporary DB:
 15. News scoring writes `importance` and `sectors` back to the row
 16. Radar generation does not crash on an empty DB
 17. Radar separates `POSSIBLE_TRADE` from `WATCH` / `AVOID` in output order
+18. Polymarket categorizer maps known buckets
+19. Polymarket sports markets are excluded under the default config
 
-Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 17/17 passed.`
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 19/19 passed.`
 
 ## Inspecting the database
 

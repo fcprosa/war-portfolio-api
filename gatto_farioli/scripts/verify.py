@@ -479,6 +479,48 @@ def check_radar_separates_possible_trade_from_watch(tmp_db: Path) -> None:
     )
 
 
+# ── 18. Polymarket categorizer maps known buckets ─────────────────────────
+def check_polymarket_categorizer() -> None:
+    from ingestion.polymarket import categorize_polymarket_event
+
+    cases = [
+        ({"category": "Sports", "question": "MLB game outcome"}, "sports"),
+        ({"category": "Weather", "question": "Hottest day of the year"}, "weather"),
+        ({"category": "Politics", "question": "2026 senate race"}, "politics"),
+        ({"question": "Will CPI exceed 3% in May 2026"}, "inflation"),
+        ({"question": "Will Fed cut rates in June"}, "rates"),
+        ({"category": "Finance", "question": "S&P 500 close"}, "macro"),
+        ({"question": "Iran/Hormuz incident"}, "geopolitics"),
+        ({"question": "Bitcoin price by year end"}, "crypto"),
+        ({"category": "Health", "question": "Random health story"}, "other"),
+    ]
+    for event, expected in cases:
+        got = categorize_polymarket_event(event)
+        assert got == expected, f"categorize({event}) = {got!r}, expected {expected!r}"
+
+
+# ── 19. Polymarket sports excluded by default config ───────────────────────
+def check_polymarket_sports_excluded_by_default() -> None:
+    from ingestion.polymarket import filter_polymarket_events
+    from config import load_config
+
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    poly_cfg = cfg.get("polymarket") or {}
+    inc = poly_cfg.get("include_categories") or []
+    exc = poly_cfg.get("exclude_categories") or []
+    assert "sports" in exc, f"sports must be excluded by default; got exclude={exc}"
+
+    events = [
+        {"category": "Sports", "question": "MLB game outcome"},
+        {"category": "Politics", "question": "Senate race"},
+        {"category": "Weather", "question": "Hurricane season count"},
+    ]
+    filtered = filter_polymarket_events(events, include_categories=inc, exclude_categories=exc)
+    cats = [c for _, c in filtered]
+    assert "sports" not in cats, f"sports leaked through default filter: {cats}"
+    assert "politics" in cats and "weather" in cats, f"non-sports dropped: {cats}"
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -506,10 +548,12 @@ def main() -> int:
             "radar separates POSSIBLE_TRADE from WATCH/AVOID",
             lambda: check_radar_separates_possible_trade_from_watch(tmp_db),
         )
+        _check("polymarket categorizer maps known buckets", check_polymarket_categorizer)
+        _check("polymarket sports excluded by default config", check_polymarket_sports_excluded_by_default)
 
     total = len(PASSED) + len(FAILED)
-    if total == 17 and not FAILED:
-        print("\nVerify: 17/17 passed.")
+    if total == 19 and not FAILED:
+        print("\nVerify: 19/19 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:
