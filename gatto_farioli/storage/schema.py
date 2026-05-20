@@ -167,7 +167,12 @@ CREATE TABLE IF NOT EXISTS opportunity_candidates (
     evidence TEXT,
     created_at TIMESTAMP,
     last_seen TIMESTAMP,
-    status TEXT DEFAULT 'open'
+    status TEXT DEFAULT 'open',
+    catalyst_path TEXT,
+    invalidation_trigger TEXT,
+    risk_reward_summary TEXT,
+    quality_bar_passed INTEGER,
+    quality_bar_missing TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_opportunity_action ON opportunity_candidates(action);

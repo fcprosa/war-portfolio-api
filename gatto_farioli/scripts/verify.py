@@ -15,6 +15,7 @@ Exit code 0 on success, non-zero on first failure (with details printed).
 from __future__ import annotations
 
 import io
+import json
 import sys
 import tempfile
 import traceback
@@ -521,6 +522,98 @@ def check_polymarket_sports_excluded_by_default() -> None:
     assert "politics" in cats and "weather" in cats, f"non-sports dropped: {cats}"
 
 
+# ── 20. Quality bar downgrades POSSIBLE_TRADE when invalidation missing ─────
+def check_quality_bar_downgrades_possible_trade(tmp_db: Path) -> None:
+    from analysis.opportunities import score_opportunities
+    from config import load_config
+    from storage.db import get_conn, init_db, query_one
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO narrative_clusters (
+                cluster_key, title, summary, sectors,
+                first_seen, last_seen, article_count,
+                avg_importance, max_importance, momentum_24h, momentum_7d,
+                status, related_tickers, related_markets, updated_at
+            ) VALUES (
+                'nar_qb', 'Iran oil escalation narrative', '{}', '["oil"]',
+                ?, ?, 8, 6.0, 7.0, 2.0, 1.0, 'active', '["CVX"]', '[]', ?
+            )
+            """,
+            (now, now, now),
+        )
+        conn.execute(
+            """
+            INSERT INTO news (url_hash, url, source, title, summary, sectors, importance, published_at)
+            VALUES ('qb1', 'https://x/qb1', 'Reuters', 'Oil jumps on Hormuz', 'Crude up', 'oil', 8.0, ?)
+            """,
+            (now,),
+        )
+    cfg["watchlist"] = {"oil": ["CVX"]}
+    score_opportunities(cfg, db_path=tmp_db)
+    row = query_one(
+        "SELECT action, quality_bar_passed, quality_bar_missing FROM opportunity_candidates WHERE related_ticker = 'CVX'",
+        db_path=tmp_db,
+    )
+    assert row is not None, "expected equity:CVX candidate"
+    assert row["action"] == "WATCH", f"expected WATCH, got {row['action']}"
+    assert row["quality_bar_passed"] == 0
+    missing = json.loads(row["quality_bar_missing"] or "[]")
+    assert "invalidation_trigger" in missing
+
+
+# ── 21. Radar surfaces quality bar fields and exceptions ──────────────────
+def check_radar_quality_bar_surface(tmp_db: Path) -> None:
+    from analysis.radar import generate_daily_radar
+    from config import load_config
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, score, confidence,
+                action, signals_count, missing_data, evidence, created_at, last_seen, status,
+                catalyst_path, invalidation_trigger, risk_reward_summary,
+                quality_bar_passed, quality_bar_missing
+            ) VALUES (
+                'equity:PASS', 'QB Pass Row', '', 'equity', 80.0, 8.0, 'WATCH', 3,
+                '[]', '{}', ?, ?, 'open',
+                'Active catalyst path', 'close outside [10, 20]', '+5% / -3% (30d band)', 1, '[]'
+            )
+            """,
+            (now, now),
+        )
+        conn.execute(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, score, confidence,
+                action, signals_count, missing_data, evidence, created_at, last_seen, status,
+                catalyst_path, invalidation_trigger, risk_reward_summary,
+                quality_bar_passed, quality_bar_missing
+            ) VALUES (
+                'equity:FAIL', 'QB Fail Row', '', 'equity', 70.0, 7.0, 'WATCH', 3,
+                '[]', '{}', ?, ?, 'open',
+                NULL, NULL, NULL, 0, '["invalidation_trigger"]'
+            )
+            """,
+            (now, now),
+        )
+    text = generate_daily_radar(cfg, db_path=tmp_db, dry_run=True)
+    assert "catalyst:" in text
+    assert "invalidate if:" in text
+    assert "R/R:" in text
+    assert "## Quality bar exceptions" in text
+    assert "QB Fail Row" in text
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -550,10 +643,18 @@ def main() -> int:
         )
         _check("polymarket categorizer maps known buckets", check_polymarket_categorizer)
         _check("polymarket sports excluded by default config", check_polymarket_sports_excluded_by_default)
+        _check(
+            "quality bar downgrades POSSIBLE_TRADE to WATCH when invalidation missing",
+            lambda: check_quality_bar_downgrades_possible_trade(tmp_db),
+        )
+        _check(
+            "radar surfaces quality bar fields and exceptions",
+            lambda: check_radar_quality_bar_surface(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    if total == 19 and not FAILED:
-        print("\nVerify: 19/19 passed.")
+    if total == 21 and not FAILED:
+        print("\nVerify: 21/21 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:

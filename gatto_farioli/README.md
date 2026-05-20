@@ -6,7 +6,7 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
-The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar)**.
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar)**.
 
 | Capability | Module | Notes |
 |---|---|---|
@@ -24,7 +24,8 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Opportunity scoring foundation** (Phase D) | `analysis/opportunities.py` | `opportunity_candidates` upsert-by-key, deterministic v2 scoring, hard `POSSIBLE_TRADE` gates (score / confidence / signals / tradable instrument / multi-source evidence). |
 | **Daily Radar** (Phase E) | `analysis/radar.py` | Deterministic markdown over existing tables; stored in `briefs` with `type='edge_radar_v1'`. |
 | **Polymarket ingestion + universe** (Phase F) | `ingestion/polymarket.py` | Gamma API snapshots + `market_universe` discovery (`platform='polymarket'`); sports excluded by default. |
-| Verification harness (19 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Quality Bar enrichment** (Phase G) | `analysis/opportunities.py` | Catalyst path / invalidation / risk-reward / data-health on every candidate; rows that miss the bar are deterministically capped at WATCH per PRODUCT_VISION §7. |
+| Verification harness (21 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
@@ -98,7 +99,7 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 19-check suite against a temporary DB:
+Runs a 21-check suite against a temporary DB:
 
 1. config loads cleanly
 2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`)
@@ -119,8 +120,10 @@ Runs a 19-check suite against a temporary DB:
 17. Radar separates `POSSIBLE_TRADE` from `WATCH` / `AVOID` in output order
 18. Polymarket categorizer maps known buckets
 19. Polymarket sports markets are excluded under the default config
+20. Quality bar downgrades `POSSIBLE_TRADE` to `WATCH` when invalidation is missing
+21. Radar surfaces quality bar fields and the exceptions section
 
-Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 19/19 passed.`
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 21/21 passed.`
 
 ## Inspecting the database
 

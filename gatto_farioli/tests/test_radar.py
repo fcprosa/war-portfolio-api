@@ -27,6 +27,7 @@ def test_empty_db_renders_all_section_headers(tmp_db, minimal_config) -> None:
         "## Active & emerging narratives",
         "## Position-aware callouts",
         "## Source-health warnings",
+        "## Quality bar exceptions",
         "## Missing-data flags",
     ):
         assert header in text
@@ -133,3 +134,63 @@ def test_persist_writes_brief_and_runs_row(tmp_db, minimal_config) -> None:
     assert run is not None
     assert run["status"] == "ok"
     assert "edge_radar_v1" in run["message"]
+
+
+def test_radar_includes_quality_bar_sub_lines(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    now = datetime.now(timezone.utc).isoformat()
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, score, confidence,
+                action, signals_count, missing_data, evidence, created_at, last_seen, status,
+                catalyst_path, invalidation_trigger, risk_reward_summary,
+                quality_bar_passed, quality_bar_missing
+            ) VALUES (
+                'equity:QB1', 'QB Rich Row', '', 'equity', 88.0, 8.0, 'WATCH', 3,
+                '[]', '{}', ?, ?, 'open',
+                'Oil narrative catalyst', 'close outside [20, 40] (30d band on QB1)',
+                '+10% / -5% (30d band)', 1, '[]'
+            )
+            """,
+            (now, now),
+        )
+    text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
+    assert "catalyst: Oil narrative catalyst" in text
+    assert "invalidate if: close outside [20, 40]" in text
+    assert "R/R: +10% / -5% (30d band)" in text
+    assert "QB: PASS" in text
+
+
+def test_radar_quality_bar_exceptions_section(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    now = datetime.now(timezone.utc).isoformat()
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, score, confidence,
+                action, signals_count, missing_data, evidence, created_at, last_seen, status,
+                catalyst_path, invalidation_trigger, risk_reward_summary,
+                quality_bar_passed, quality_bar_missing
+            ) VALUES (
+                'equity:EXC', 'Downgraded High Score', '', 'equity', 72.0, 7.0, 'WATCH', 3,
+                '[]', '{}', ?, ?, 'open',
+                NULL, NULL, NULL, 0, '["invalidation_trigger","risk_reward_summary"]'
+            )
+            """,
+            (now, now),
+        )
+    text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
+    assert "## Quality bar exceptions" in text
+    assert "Downgraded High Score" in text
+    assert "downgraded to WATCH" in text
+    assert "invalidation_trigger" in text
+
+
+def test_radar_quality_bar_exceptions_empty_shows_no_data(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
+    block = text.split("## Quality bar exceptions")[1].split("## Missing-data flags")[0]
+    assert "_no data_" in block

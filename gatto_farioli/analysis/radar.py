@@ -188,13 +188,52 @@ def _fetch_top_opportunities(db_path: str | Path, top_n: int) -> list[dict[str, 
     rows = query_all(
         """
         SELECT candidate_key, title, score, confidence, action,
-               related_ticker, related_market_ticker, signals_count, evidence
+               related_ticker, related_market_ticker, signals_count, evidence,
+               catalyst_path, invalidation_trigger, risk_reward_summary,
+               quality_bar_passed, quality_bar_missing
         FROM opportunity_candidates
         WHERE status = 'open'
         ORDER BY score DESC, confidence DESC, candidate_key ASC
         LIMIT ?
         """,
         (top_n,),
+        db_path=db_path,
+    )
+    return [dict(r) for r in rows]
+
+
+def _quality_bar_sub_lines(row: dict[str, Any]) -> list[str]:
+    """Indented bullet sub-lines for Quality Bar fields on one opportunity row."""
+    lines: list[str] = []
+    if row.get("catalyst_path"):
+        lines.append(f"  • catalyst: {row['catalyst_path']}")
+    if row.get("invalidation_trigger"):
+        lines.append(f"  • invalidate if: {row['invalidation_trigger']}")
+    rr = row.get("risk_reward_summary")
+    if rr:
+        try:
+            missing = json.loads(row.get("quality_bar_missing") or "[]")
+        except json.JSONDecodeError:
+            missing = []
+        if row.get("quality_bar_passed"):
+            qb_label = "PASS"
+        else:
+            qb_label = f"FAIL — missing: {', '.join(missing)}" if missing else "FAIL"
+        lines.append(f"  • R/R: {rr} | QB: {qb_label}")
+    return lines
+
+
+def _fetch_quality_bar_exceptions(db_path: str | Path) -> list[dict[str, Any]]:
+    rows = query_all(
+        """
+        SELECT title, quality_bar_missing
+        FROM opportunity_candidates
+        WHERE status = 'open'
+          AND quality_bar_passed = 0
+          AND action = 'WATCH'
+          AND score >= 50
+        ORDER BY score DESC
+        """,
         db_path=db_path,
     )
     return [dict(r) for r in rows]
@@ -302,6 +341,7 @@ def _section_top_opportunities(opportunities: list[dict[str, Any]]) -> str:
                 f"action={row.get('action')} asset={asset} "
                 f"signals={row.get('signals_count')} | {_evidence_one_liner(row.get('evidence'))}"
             )
+            lines.extend(_quality_bar_sub_lines(row))
         blocks_written += 1
 
     if blocks_written == 0:
@@ -385,6 +425,24 @@ def _section_source_health(db_path: str | Path) -> str:
     return "\n".join(lines)
 
 
+def _section_quality_bar_exceptions(db_path: str | Path) -> str:
+    lines = ["## Quality bar exceptions"]
+    rows = _fetch_quality_bar_exceptions(db_path)
+    if not rows:
+        lines.append(_EMPTY)
+        return "\n".join(lines)
+    for row in rows:
+        try:
+            missing = json.loads(row.get("quality_bar_missing") or "[]")
+        except json.JSONDecodeError:
+            missing = []
+        missing_s = ", ".join(missing) if missing else "unknown"
+        lines.append(
+            f"- {row.get('title')} | downgraded to WATCH | missing: {missing_s}"
+        )
+    return "\n".join(lines)
+
+
 def _section_missing_data(
     runs: dict[str, dict[str, Any]],
     *,
@@ -422,6 +480,7 @@ def _build_radar_text(
         _section_narratives(narratives),
         _section_position_callouts(positions, opportunities, narratives),
         _section_source_health(db_path),
+        _section_quality_bar_exceptions(db_path),
         _section_missing_data(runs, staleness_hours=staleness_hours, now=now),
     ]
     return "\n\n".join(sections) + "\n"

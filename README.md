@@ -123,7 +123,8 @@ What's working on `main`:
 - Daily Edge Brief v1 stored in SQLite + printed to stdout
 - Daily Radar (`analysis/radar.py`) over existing tables, stored as `edge_radar_v1`
 - Polymarket ingestion + universe discovery (Gamma API → `prediction_markets` + `market_universe`)
-- 19-check verification harness (`scripts/verify.py`)
+- Quality Bar enrichment per PRODUCT_VISION §7 — recommendations missing catalyst / invalidation / risk-reward / data-health are downgraded to WATCH
+- 21-check verification harness (`scripts/verify.py`)
 
 Not yet built (deliberately): LLM enrichment, PortWatch ingestion, Telegram/email alerts.
 

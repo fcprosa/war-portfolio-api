@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from storage.db import DEFAULT_DB_PATH, get_conn
+from storage.db import DEFAULT_DB_PATH, get_conn, query_all, query_one
 
 logger = logging.getLogger(__name__)
 
@@ -564,11 +564,183 @@ def _build_candidates(config: dict[str, Any], db_path: str | Path) -> list[_Cand
     return out
 
 
+def _equity_30d_band(db_path: str | Path, ticker: str) -> tuple[float | None, float | None, float | None]:
+    """Return (low, high, latest_close) for ticker over the last 30 days."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
+    rows = query_all(
+        """
+        SELECT close FROM prices
+        WHERE ticker = ? AND date >= ?
+        ORDER BY date DESC
+        """,
+        (ticker.upper(), cutoff),
+        db_path=db_path,
+    )
+    if not rows:
+        return None, None, None
+    closes = [float(r["close"]) for r in rows if r["close"] is not None]
+    if not closes:
+        return None, None, None
+    return min(closes), max(closes), closes[0]
+
+
+def _prediction_market_odds(
+    db_path: str | Path,
+    market_ticker: str,
+) -> tuple[float | None, float | None]:
+    """Latest yes/no prices from prediction_markets for a market ticker."""
+    row = query_one(
+        """
+        SELECT yes_price, no_price FROM prediction_markets
+        WHERE ticker = ?
+        ORDER BY snapshot_at DESC
+        LIMIT 1
+        """,
+        (market_ticker,),
+        db_path=db_path,
+    )
+    if not row:
+        return None, None
+    return row["yes_price"], row["no_price"]
+
+
+def _source_health_map(db_path: str | Path) -> dict[str, str]:
+    rows = query_all(
+        "SELECT source, status FROM source_health",
+        db_path=db_path,
+    )
+    return {str(r["source"]): str(r["status"] or "") for r in rows}
+
+
+def compute_quality_bar(c: _Candidate, *, db_path: str | Path) -> dict[str, Any]:
+    """Derive PRODUCT_VISION §7 Quality Bar fields from stored SQLite state only."""
+    health = _source_health_map(db_path)
+
+    catalyst_path: str | None = None
+    if c.related_narrative_id is not None:
+        narr = query_one(
+            """
+            SELECT title, status, article_count
+            FROM narrative_clusters
+            WHERE id = ? AND status IN ('active', 'emerging')
+            """,
+            (c.related_narrative_id,),
+            db_path=db_path,
+        )
+        if narr:
+            catalyst_path = (
+                f"{narr['title']} — status: {narr['status']}, "
+                f"articles in 24h: {narr['article_count']}"
+            )
+    if catalyst_path is None:
+        news_items = c.evidence.get("news") if isinstance(c.evidence, dict) else None
+        if isinstance(news_items, list) and news_items:
+            first = news_items[0]
+            if isinstance(first, dict) and first.get("title"):
+                catalyst_path = f"news catalyst: {first['title']}"
+
+    invalidation_trigger: str | None = None
+    risk_reward_summary: str | None = None
+    executable_instrument: str | None = None
+
+    if c.related_ticker and not c.related_market_ticker:
+        ticker = c.related_ticker.upper()
+        low, high, px = _equity_30d_band(db_path, ticker)
+        if low is not None and high is not None:
+            invalidation_trigger = (
+                f"close outside [{low}, {high}] (30d band on {ticker})"
+            )
+        if low is not None and high is not None and px is not None and px > 0:
+            up_pct = round((high - px) / px * 100.0, 1)
+            down_pct = round((px - low) / px * 100.0, 1)
+            risk_reward_summary = f"+{up_pct}% / -{down_pct}% (30d band)"
+        executable_instrument = f"equity:{ticker}"
+    elif c.related_market_ticker:
+        sym = c.related_market_ticker
+        yes_p, no_p = _prediction_market_odds(db_path, sym)
+        if yes_p is not None:
+            lo = round(max(0.0, yes_p - 0.10), 4)
+            hi = round(min(1.0, yes_p + 0.10), 4)
+            invalidation_trigger = (
+                f"yes_price outside [{lo}, {hi}] (current {yes_p})"
+            )
+            risk_reward_summary = (
+                f"+{round((1.0 - yes_p) * 100.0, 1)}% if YES resolves / "
+                f"-{round(yes_p * 100.0, 1)}% if NO resolves (current yes={yes_p})"
+            )
+        uni = query_one(
+            "SELECT platform FROM market_universe WHERE symbol = ?",
+            (sym,),
+            db_path=db_path,
+        )
+        platform = (uni["platform"] if uni else None) or "market"
+        executable_instrument = f"{platform}:{sym}"
+
+    data_health_ok = True
+    news_items = c.evidence.get("news") if isinstance(c.evidence, dict) else None
+    news_sources: list[str] = []
+    if isinstance(news_items, list):
+        for item in news_items:
+            if isinstance(item, dict) and item.get("source"):
+                news_sources.append(str(item["source"]))
+    if news_sources:
+        for src in news_sources:
+            if health.get(src) == "error":
+                data_health_ok = False
+                break
+    if data_health_ok and c.related_market_ticker:
+        uni = query_one(
+            "SELECT platform FROM market_universe WHERE symbol = ?",
+            (c.related_market_ticker,),
+            db_path=db_path,
+        )
+        platform = (uni["platform"] if uni else "").lower()
+        if platform == "kalshi":
+            key = f"kalshi:{c.related_market_ticker}"
+            if health.get(key) == "error":
+                data_health_ok = False
+        elif platform == "polymarket":
+            if health.get("polymarket:gamma:markets") == "error":
+                data_health_ok = False
+
+    missing_items: list[str] = []
+    if catalyst_path is None:
+        missing_items.append("catalyst_path")
+    if invalidation_trigger is None:
+        missing_items.append("invalidation_trigger")
+    if risk_reward_summary is None:
+        missing_items.append("risk_reward_summary")
+    if executable_instrument is None:
+        missing_items.append("executable_instrument")
+    if not data_health_ok:
+        missing_items.append("data_health_ok")
+
+    passed = len(missing_items) == 0
+    return {
+        "catalyst_path": catalyst_path,
+        "invalidation_trigger": invalidation_trigger,
+        "risk_reward_summary": risk_reward_summary,
+        "executable_instrument": executable_instrument,
+        "data_health_ok": data_health_ok,
+        "missing_items": missing_items,
+        "passed": passed,
+    }
+
+
+def _apply_quality_bar_downgrade(c: _Candidate, quality_bar: dict[str, Any]) -> None:
+    """Cap action at WATCH when the Quality Bar is not fully met."""
+    if quality_bar.get("passed"):
+        return
+    if c.action in (ACTION_POSSIBLE_TRADE, ACTION_INVESTIGATE):
+        c.action = ACTION_WATCH
+
+
 def upsert_opportunity_candidates(
     candidates: list[_Candidate],
     db_path: str | Path = DEFAULT_DB_PATH,
     *,
     dry_run: bool = False,
+    quality_bars: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[int, int]:
     """Persist candidates; return (inserted, updated) counts."""
     if dry_run or not candidates:
@@ -576,12 +748,14 @@ def upsert_opportunity_candidates(
 
     now = _now_iso()
     inserted = updated = 0
+    bars = quality_bars or {}
     with get_conn(db_path) as conn:
         for c in candidates:
             existed = conn.execute(
                 "SELECT 1 FROM opportunity_candidates WHERE candidate_key = ?",
                 (c.candidate_key,),
             ).fetchone()
+            qb = bars.get(c.candidate_key) or compute_quality_bar(c, db_path=db_path)
             params = {
                 "candidate_key": c.candidate_key,
                 "title": c.title,
@@ -599,6 +773,11 @@ def upsert_opportunity_candidates(
                 "created_at": now,
                 "last_seen": now,
                 "status": "open",
+                "catalyst_path": qb.get("catalyst_path"),
+                "invalidation_trigger": qb.get("invalidation_trigger"),
+                "risk_reward_summary": qb.get("risk_reward_summary"),
+                "quality_bar_passed": 1 if qb.get("passed") else 0,
+                "quality_bar_missing": json.dumps(qb.get("missing_items") or [], ensure_ascii=False),
             }
             conn.execute(
                 """
@@ -606,12 +785,16 @@ def upsert_opportunity_candidates(
                     candidate_key, title, summary, source_type,
                     related_ticker, related_market_ticker, related_narrative_id,
                     score, confidence, action, signals_count,
-                    missing_data, evidence, created_at, last_seen, status
+                    missing_data, evidence, created_at, last_seen, status,
+                    catalyst_path, invalidation_trigger, risk_reward_summary,
+                    quality_bar_passed, quality_bar_missing
                 ) VALUES (
                     :candidate_key, :title, :summary, :source_type,
                     :related_ticker, :related_market_ticker, :related_narrative_id,
                     :score, :confidence, :action, :signals_count,
-                    :missing_data, :evidence, :created_at, :last_seen, :status
+                    :missing_data, :evidence, :created_at, :last_seen, :status,
+                    :catalyst_path, :invalidation_trigger, :risk_reward_summary,
+                    :quality_bar_passed, :quality_bar_missing
                 )
                 ON CONFLICT(candidate_key) DO UPDATE SET
                     title = excluded.title,
@@ -627,7 +810,12 @@ def upsert_opportunity_candidates(
                     missing_data = excluded.missing_data,
                     evidence = excluded.evidence,
                     last_seen = excluded.last_seen,
-                    status = excluded.status
+                    status = excluded.status,
+                    catalyst_path = excluded.catalyst_path,
+                    invalidation_trigger = excluded.invalidation_trigger,
+                    risk_reward_summary = excluded.risk_reward_summary,
+                    quality_bar_passed = excluded.quality_bar_passed,
+                    quality_bar_missing = excluded.quality_bar_missing
                 """,
                 params,
             )
@@ -646,11 +834,19 @@ def score_opportunities(
 ) -> OpportunityScoreResult:
     """Score all candidates and persist to opportunity_candidates."""
     candidates = _build_candidates(config, db_path)
+    quality_bars: dict[str, dict[str, Any]] = {}
+    for c in candidates:
+        qb = compute_quality_bar(c, db_path=db_path)
+        _apply_quality_bar_downgrade(c, qb)
+        quality_bars[c.candidate_key] = qb
+
     by_action: dict[str, int] = {}
     for c in candidates:
         by_action[c.action] = by_action.get(c.action, 0) + 1
 
-    inserted, updated = upsert_opportunity_candidates(candidates, db_path, dry_run=dry_run)
+    inserted, updated = upsert_opportunity_candidates(
+        candidates, db_path, dry_run=dry_run, quality_bars=quality_bars,
+    )
     return OpportunityScoreResult(
         candidates_scored=len(candidates),
         inserted=inserted,
@@ -723,6 +919,7 @@ __all__ = [
     "POSSIBLE_TRADE_MIN_CONFIDENCE",
     "POSSIBLE_TRADE_MIN_SIGNALS",
     "OpportunityScoreResult",
+    "compute_quality_bar",
     "score_opportunities",
     "upsert_opportunity_candidates",
     "find_opportunities",

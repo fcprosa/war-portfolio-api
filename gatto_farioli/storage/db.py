@@ -48,6 +48,14 @@ _OPPORTUNITY_V2_COLUMNS = frozenset({
     "last_seen", "status",
 })
 
+_OPPORTUNITY_V3_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("catalyst_path", "TEXT"),
+    ("invalidation_trigger", "TEXT"),
+    ("risk_reward_summary", "TEXT"),
+    ("quality_bar_passed", "INTEGER"),
+    ("quality_bar_missing", "TEXT"),
+)
+
 
 def _migrate_opportunity_candidates(conn: sqlite3.Connection) -> None:
     """Drop legacy opportunity_candidates tables that predate Phase D schema."""
@@ -61,11 +69,27 @@ def _migrate_opportunity_candidates(conn: sqlite3.Connection) -> None:
         conn.execute("DROP TABLE IF EXISTS opportunity_candidates")
 
 
+def _upgrade_opportunity_candidates_to_v3(conn: sqlite3.Connection) -> None:
+    """Add Phase G Quality Bar columns to existing opportunity_candidates tables."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='opportunity_candidates'"
+    ).fetchone()
+    if not row:
+        return
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(opportunity_candidates)")}
+    for col_name, col_type in _OPPORTUNITY_V3_COLUMNS:
+        if col_name not in existing:
+            conn.execute(
+                f"ALTER TABLE opportunity_candidates ADD COLUMN {col_name} {col_type}"
+            )
+
+
 def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> None:
     """Create every table and index required by the local intelligence system."""
     with get_conn(db_path) as conn:
         _migrate_opportunity_candidates(conn)
         conn.executescript(SCHEMA_SQL)
+        _upgrade_opportunity_candidates_to_v3(conn)
 
 
 def execute(
