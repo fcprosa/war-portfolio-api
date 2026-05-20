@@ -166,3 +166,8 @@ schedule:
   daily_brief: "0 7 * * *"
   thesis_review: "0 18 * * *"
   weekly_deep_review: "0 9 * * SUN"
+
+radar:
+  top_n: 10
+  staleness_hours: 36
+  narrative_max: 8

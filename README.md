@@ -121,9 +121,10 @@ What's working on `main`:
 - Source-health tracking (`source_health` per-feed / per-endpoint success/failure)
 - Strict opportunity scoring foundation (`opportunity_candidates` with hard `POSSIBLE_TRADE` gates)
 - Daily Edge Brief v1 stored in SQLite + printed to stdout
-- 15-check verification harness (`scripts/verify.py`)
+- Daily Radar (`analysis/radar.py`) over existing tables, stored as `edge_radar_v1`
+- 17-check verification harness (`scripts/verify.py`)
 
-Not yet built (deliberately): LLM enrichment, Polymarket ingestion, PortWatch ingestion, Telegram/email alerts, and the radar/UI surface that will consume narratives + opportunities. There is **no `radar` module on `main` yet**.
+Not yet built (deliberately): LLM enrichment, Polymarket ingestion, PortWatch ingestion, Telegram/email alerts.
 
 A local `git stash` entry (`wip: future-phase radar narratives kalshi`) holds in-progress work for the radar surface, expanded Kalshi ingestion, and operational user-state CLI. It is **not applied** to `main` and is not required to run anything documented here.
 

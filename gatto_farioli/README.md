@@ -6,7 +6,7 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
-The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation**. The radar/UI surface that consumes these tables has not been built yet — there is no `analysis/radar.py` on `main`.
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar)**.
 
 | Capability | Module | Notes |
 |---|---|---|
@@ -22,12 +22,12 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Kalshi market universe** (Phase B) | `ingestion/kalshi.py` | Events API discovery → `market_universe` (sports excluded by default). |
 | **Source health** (Phase C) | `storage/source_health.py` | Per-feed / per-endpoint success/failure tracking. |
 | **Opportunity scoring foundation** (Phase D) | `analysis/opportunities.py` | `opportunity_candidates` upsert-by-key, deterministic v2 scoring, hard `POSSIBLE_TRADE` gates (score / confidence / signals / tradable instrument / multi-source evidence). |
-| Verification harness (15 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Daily Radar** (Phase E) | `analysis/radar.py` | Deterministic markdown over existing tables; stored in `briefs` with `type='edge_radar_v1'`. |
+| Verification harness (17 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
 - **No LLM calls.** All scoring, tagging, signal resolution, and brief composition are rule-based and free.
-- **No radar module.** `analysis/radar.py` does not exist on `main`; opportunity rows are written but not yet surfaced as a daily radar view.
 - **No Polymarket ingestion.** Hook exists (`ingestion/polymarket.py` stub) but no live calls.
 - **No PortWatch ingestion.** PortWatch is one signal in a future delta layer; not the centerpiece.
 - **No Telegram / email alerts.** Output goes to stdout + SQLite.
@@ -59,6 +59,12 @@ python run.py --brief
 
 # Generate brief from existing DB only — no network calls
 python run.py --brief --no-ingest
+
+# Generate and store the Daily Radar (runs ingestion first)
+python run.py --radar
+
+# Radar from existing DB only — no network calls
+python run.py --radar --no-ingest
 
 # Dry-run any pipeline (no DB writes)
 python run.py --ingest --dry-run
@@ -92,7 +98,7 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 15-check suite against a temporary DB:
+Runs a 17-check suite against a temporary DB:
 
 1. config loads cleanly
 2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`)
@@ -109,8 +115,10 @@ Runs a 15-check suite against a temporary DB:
 13. Opportunity upsert updates an existing candidate instead of duplicating it
 14. Opportunity action guards block weak `POSSIBLE_TRADE` candidates
 15. News scoring writes `importance` and `sectors` back to the row
+16. Radar generation does not crash on an empty DB
+17. Radar separates `POSSIBLE_TRADE` from `WATCH` / `AVOID` in output order
 
-Exit code is non-zero on the first failure.
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 17/17 passed.`
 
 ## Inspecting the database
 

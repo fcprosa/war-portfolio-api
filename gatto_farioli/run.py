@@ -12,7 +12,8 @@ Flags:
   --health        Print module health and row counts, then exit.
   --ingest        Run every ingestion source plus scoring + position sync (default).
   --brief         Generate the Daily Edge Brief; runs ingestion first unless --no-ingest.
-  --no-ingest     Skip ingestion (use existing DB rows; pairs with --brief).
+  --radar         Generate the Daily Radar; runs ingestion first unless --no-ingest.
+  --no-ingest     Skip ingestion (use existing DB rows; pairs with --brief or --radar).
   --dry-run       Fetch and compute, but do not write any DB rows.
   --config PATH   Path to config.yaml.
   --db PATH       Path to SQLite DB (defaults to ./argos.db).
@@ -289,7 +290,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--health", action="store_true", help="Show local DB/module health and exit")
     parser.add_argument("--ingest", action="store_true", help="Run full ingestion pipeline")
     parser.add_argument("--brief", action="store_true", help="Generate the Daily Edge Brief v1")
-    parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (pairs with --brief)")
+    parser.add_argument("--radar", action="store_true", help="Generate the Daily Radar v1")
+    parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (pairs with --brief or --radar)")
     return parser.parse_args()
 
 
@@ -315,6 +317,28 @@ def run_brief(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_radar(args: argparse.Namespace) -> int:
+    """Generate and print the Daily Radar (opportunity / narrative surface)."""
+    db_path = Path(args.db)
+    init_db(db_path)
+
+    from analysis.radar import generate_daily_radar
+    from config import load_config
+
+    config = load_config(args.config)
+    started = datetime.now(timezone.utc)
+    try:
+        text = generate_daily_radar(config, db_path=db_path, dry_run=args.dry_run)
+    except Exception as exc:  # noqa: BLE001
+        if not args.dry_run:
+            record_run("radar", "error", f"unhandled: {exc}", started, db_path)
+        print(f"ERROR: radar generation failed: {exc}")
+        return 1
+
+    print(text)
+    return 0
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     args = parse_args()
@@ -330,8 +354,15 @@ def main() -> int:
                 print("Gatto Farioli: ingestion reported errors; continuing into brief with degraded data.")
         return run_brief(args)
 
+    if args.radar:
+        if not args.no_ingest:
+            rc = asyncio.run(run_ingestion(args))
+            if rc != 0:
+                print("Gatto Farioli: ingestion reported errors; continuing into radar with degraded data.")
+        return run_radar(args)
+
     if args.no_ingest:
-        print("Gatto Farioli: --no-ingest set without --brief; nothing to do.")
+        print("Gatto Farioli: --no-ingest set without --brief or --radar; nothing to do.")
         return 0
 
     return asyncio.run(run_ingestion(args))

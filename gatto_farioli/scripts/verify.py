@@ -435,6 +435,50 @@ def check_news_scoring(tmp_db: Path) -> None:
     assert "geopolitics" in sectors or "oil" in sectors, f"expected geopolitics/oil tag, got {sectors!r}"
 
 
+# ── 16. Radar on empty DB ─────────────────────────────────────────────────
+def check_radar_on_empty_db(tmp_db: Path) -> None:
+    from analysis.radar import generate_daily_radar
+    from config import load_config
+    from storage.db import init_db
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    text = generate_daily_radar(cfg, db_path=tmp_db, dry_run=True)
+    assert isinstance(text, str), "radar must return a string"
+    assert "Top opportunities" in text, "radar missing Top opportunities section"
+    assert "Active & emerging narratives" in text, "radar missing narratives section"
+    assert "Source-health warnings" in text, "radar missing Source-health warnings section"
+
+
+# ── 17. Radar action ordering ─────────────────────────────────────────────
+def check_radar_separates_possible_trade_from_watch(tmp_db: Path) -> None:
+    from analysis.opportunities import ACTION_POSSIBLE_TRADE, ACTION_WATCH
+    from analysis.radar import generate_daily_radar
+    from config import load_config
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.executemany(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, score, confidence,
+                action, signals_count, missing_data, evidence, created_at, last_seen, status
+            ) VALUES (?, ?, '', 'equity', ?, ?, ?, 1, '[]', '{}', ?, ?, 'open')
+            """,
+            [
+                ("equity:W", "Verify Watch Title", 50.0, 5.0, ACTION_WATCH, now, now),
+                ("equity:P", "Verify Possible Trade Title", 90.0, 9.0, ACTION_POSSIBLE_TRADE, now, now),
+            ],
+        )
+    text = generate_daily_radar(cfg, db_path=tmp_db, dry_run=True)
+    assert text.index("Verify Possible Trade Title") < text.index("Verify Watch Title"), (
+        "POSSIBLE_TRADE must appear before WATCH in radar output"
+    )
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -457,9 +501,17 @@ def main() -> int:
         _check("opportunity upsert updates last_seen not duplicate", lambda: check_opportunity_upsert_idempotent(tmp_db))
         _check("opportunity action guards block weak POSSIBLE_TRADE", lambda: check_opportunity_action_guards(tmp_db))
         _check("news scoring writes importance + sectors", lambda: check_news_scoring(tmp_db))
+        _check("radar generation does not crash on empty db", lambda: check_radar_on_empty_db(tmp_db))
+        _check(
+            "radar separates POSSIBLE_TRADE from WATCH/AVOID",
+            lambda: check_radar_separates_possible_trade_from_watch(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    print(f"\nVerify: {len(PASSED)}/{total} passed.")
+    if total == 17 and not FAILED:
+        print("\nVerify: 17/17 passed.")
+    else:
+        print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:
         print("Failures:")
         for name in FAILED:
