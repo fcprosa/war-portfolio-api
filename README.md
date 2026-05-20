@@ -105,21 +105,29 @@ Both are optional — the dashboard falls back to empty state if not set.
 
 ## Gatto Farioli — current status
 
-Gatto Farioli has shipped **Daily Edge Brief v1**. Run `python run.py --brief` from `gatto_farioli/` to ingest news + prices + Kalshi snapshot + position state and emit a deterministic position-aware markdown brief. All scoring, tagging, signal resolution, and brief composition is rule-based — **no LLM calls in the current build**.
+Gatto Farioli on `main` has shipped **Session 1 foundation + hardening + Phase A–C (narrative memory, market universe, source health) + Phase D foundation (strict opportunity scoring)**. Run `python run.py --brief` from `gatto_farioli/` to ingest news + prices + Kalshi snapshot + position state and emit a deterministic position-aware markdown brief. All scoring, tagging, signal resolution, and brief composition is rule-based — **no LLM calls in the current build**.
 
-What's working:
+What's working on `main`:
 
 - Tier-1 RSS ingestion with URL-hash dedupe
 - Deterministic news scoring (importance 0-10) and multi-sector tagging
 - yfinance price ingestion for portfolio + every watchlist group (~35d history)
 - Position sync with mark-to-market joined from latest close
 - Kalshi public-market snapshot ingestion (graceful 404 / network failure)
+- Kalshi market universe discovery via Events API (`market_universe`; sports excluded by default)
 - Delta detection (24h news + portfolio/watchlist movers + missing data)
 - Thesis health v1 (ticker-threshold signals resolved; rest honestly marked uncertain)
+- Narrative memory (`narrative_clusters` with `emerging` / `active` / `fading` / `resolved` states)
+- Source-health tracking (`source_health` per-feed / per-endpoint success/failure)
+- Strict opportunity scoring foundation (`opportunity_candidates` with hard `POSSIBLE_TRADE` gates)
 - Daily Edge Brief v1 stored in SQLite + printed to stdout
-- 7-check verification harness (`scripts/verify.py`)
+- 15-check verification harness (`scripts/verify.py`)
 
-Not yet built (deliberately): LLM enrichment, Polymarket ingestion, PortWatch ingestion, Telegram/email alerts. See `gatto_farioli/README.md` for the full capability matrix, daily commands, and inspection queries.
+Not yet built (deliberately): LLM enrichment, Polymarket ingestion, PortWatch ingestion, Telegram/email alerts, and the radar/UI surface that will consume narratives + opportunities. There is **no `radar` module on `main` yet**.
+
+A local `git stash` entry (`wip: future-phase radar narratives kalshi`) holds in-progress work for the radar surface, expanded Kalshi ingestion, and operational user-state CLI. It is **not applied** to `main` and is not required to run anything documented here.
+
+See `gatto_farioli/README.md` for the full capability matrix, daily commands, and inspection queries.
 
 ## Privacy
 

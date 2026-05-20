@@ -6,6 +6,8 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation**. The radar/UI surface that consumes these tables has not been built yet — there is no `analysis/radar.py` on `main`.
+
 | Capability | Module | Notes |
 |---|---|---|
 | Tier-1 RSS news ingestion + dedupe | `ingestion/news.py` | Async, URL-hash dedupe, tracking-param stripping. |
@@ -16,18 +18,22 @@ This folder is intentionally self-contained. Run all Python commands from here.
 | Delta detection | `analysis/delta.py` | 24h news + portfolio/watchlist movers + PM snapshot + missing-data. |
 | Thesis health v1 | `analysis/thesis.py` | Resolves `<ticker>_above|below_<N>` signals; everything else honestly marked uncertain. |
 | Daily Edge Brief v1 | `analysis/brief.py` | Markdown brief stored in `briefs` with `type='daily_edge_v1'`. |
-| **Narrative memory** | `analysis/narratives.py` | Deterministic story clusters (`emerging` / `active` / `fading` / `resolved`). |
-| **Kalshi market universe** | `ingestion/kalshi.py` | Events API discovery → `market_universe` (sports excluded by default). |
-| **Source health** | `storage/source_health.py` | Per-feed / per-endpoint success/failure tracking. |
-| Verification harness | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Narrative memory** (Phase A) | `analysis/narratives.py` | Deterministic story clusters (`emerging` / `active` / `fading` / `resolved`). |
+| **Kalshi market universe** (Phase B) | `ingestion/kalshi.py` | Events API discovery → `market_universe` (sports excluded by default). |
+| **Source health** (Phase C) | `storage/source_health.py` | Per-feed / per-endpoint success/failure tracking. |
+| **Opportunity scoring foundation** (Phase D) | `analysis/opportunities.py` | `opportunity_candidates` upsert-by-key, deterministic v2 scoring, hard `POSSIBLE_TRADE` gates (score / confidence / signals / tradable instrument / multi-source evidence). |
+| Verification harness (15 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
 - **No LLM calls.** All scoring, tagging, signal resolution, and brief composition are rule-based and free.
+- **No radar module.** `analysis/radar.py` does not exist on `main`; opportunity rows are written but not yet surfaced as a daily radar view.
 - **No Polymarket ingestion.** Hook exists (`ingestion/polymarket.py` stub) but no live calls.
 - **No PortWatch ingestion.** PortWatch is one signal in a future delta layer; not the centerpiece.
 - **No Telegram / email alerts.** Output goes to stdout + SQLite.
 - **No dashboard changes.** The legacy `index.html` dashboard is untouched.
+
+> **Local stash present, not applied.** A `git stash` entry (`wip: future-phase radar narratives kalshi`) holds future-phase work — radar surface, expanded Kalshi ingestion, and an operational user-state CLI (`user_state.yaml`). Nothing in this README depends on it. Run `git stash list` to see it; do not `git stash pop` unless you intend to land that work.
 
 ## Setup
 
@@ -86,15 +92,23 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 7-check suite against a temporary DB:
+Runs a 15-check suite against a temporary DB:
 
 1. config loads cleanly
-2. every schema table is created
+2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`)
 3. RSS URL normalization dedupes tracking params (`utm_*`, `fbclid`, `gclid`)
 4. brief generation does not crash on an empty DB
 5. `--health` prints expected sections
-6. thesis resolver correctly classifies observed/not-observed/uncertain
-7. news scoring writes importance and sectors back to the row
+6. thesis resolver correctly classifies observed / not-observed / uncertain
+7. `init_db` is idempotent for the Phase A–C tables
+8. narrative clustering merges repeated Hormuz/oil headlines and keeps unrelated stories apart
+9. narrative status values cover `emerging` / `active` / `fading` / `resolved`
+10. Kalshi categorizer maps known events to the right buckets
+11. Kalshi sports markets are excluded under the default config
+12. `source_health` surfaces consistently-failing and recently-failing sources
+13. Opportunity upsert updates an existing candidate instead of duplicating it
+14. Opportunity action guards block weak `POSSIBLE_TRADE` candidates
+15. News scoring writes `importance` and `sectors` back to the row
 
 Exit code is non-zero on the first failure.
 
