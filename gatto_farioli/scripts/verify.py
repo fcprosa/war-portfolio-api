@@ -69,7 +69,8 @@ def check_db_initializes(tmp_db: Path) -> None:
     expected_tables = (
         "news", "prices", "macro", "prediction_markets",
         "portwatch", "positions", "theses", "alerts", "briefs", "runs",
-        "narrative_clusters", "opportunity_candidates", "market_universe", "source_health",
+        "narrative_clusters", "opportunity_candidates", "opportunity_outcomes",
+        "market_universe", "source_health",
     )
     for table in expected_tables:
         row = query_one(
@@ -614,6 +615,152 @@ def check_radar_quality_bar_surface(tmp_db: Path) -> None:
     assert "QB Fail Row" in text
 
 
+# ── 22. Outcomes snapshot creates row for POSSIBLE_TRADE ───────────────────
+def check_outcomes_snapshot_creates_row(tmp_db: Path) -> None:
+    from analysis.outcomes import snapshot_open_opportunities
+    from config import load_config
+    from storage.db import get_conn, init_db, query_one
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO opportunity_candidates (
+                candidate_key, title, summary, source_type, related_ticker,
+                score, confidence, action, signals_count, missing_data, evidence,
+                created_at, last_seen, status
+            ) VALUES (
+                'equity:VFY', 'VFY trade', '', 'equity', 'VFY',
+                85.0, 8.5, 'POSSIBLE_TRADE', 3, '[]', '{}', ?, ?, 'open'
+            )
+            """,
+            (now, now),
+        )
+        conn.execute(
+            "INSERT INTO prices (ticker, date, close) VALUES ('VFY', '2026-05-14', 42.0)"
+        )
+    snapshot_open_opportunities(cfg, tmp_db)
+    rows = query_one("SELECT COUNT(*) AS n FROM opportunity_outcomes", db_path=tmp_db)
+    assert rows["n"] == 1, f"expected 1 outcome row, got {rows['n']}"
+    row = query_one(
+        "SELECT instrument_kind, entry_price FROM opportunity_outcomes WHERE candidate_key = 'equity:VFY'",
+        db_path=tmp_db,
+    )
+    assert row["instrument_kind"] == "equity"
+    assert row["entry_price"] is not None
+
+
+# ── 23. Outcomes resolve classifies hit vs miss ────────────────────────────
+def check_outcomes_resolve_hit_miss(tmp_db: Path) -> None:
+    from analysis.outcomes import resolve_open_outcomes
+    from config import load_config
+    from storage.db import get_conn, init_db, query_all
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    snap = "2026-05-01T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolution_status
+            ) VALUES (
+                'equity:VFY_HIT', ?, 'POSSIBLE_TRADE',
+                'equity', 'VFY', 100.0, 7, 'open'
+            )
+            """,
+            (snap,),
+        )
+        conn.execute(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolution_status
+            ) VALUES (
+                'equity:VFY_MISS', ?, 'POSSIBLE_TRADE',
+                'equity', 'VFY2', 100.0, 7, 'open'
+            )
+            """,
+            (snap,),
+        )
+        conn.execute(
+            "INSERT INTO prices (ticker, date, close) VALUES ('VFY', '2026-05-01', 100.0)"
+        )
+        conn.execute(
+            "INSERT INTO prices (ticker, date, close) VALUES ('VFY', '2026-05-10', 108.0)"
+        )
+        conn.execute(
+            "INSERT INTO prices (ticker, date, close) VALUES ('VFY2', '2026-05-01', 100.0)"
+        )
+        conn.execute(
+            "INSERT INTO prices (ticker, date, close) VALUES ('VFY2', '2026-05-10', 92.0)"
+        )
+    from datetime import datetime, timezone
+
+    resolve_open_outcomes(
+        cfg, tmp_db, now=datetime(2026, 5, 10, 18, 0, tzinfo=timezone.utc),
+    )
+    statuses = {
+        r["resolution_status"]
+        for r in query_all(
+            "SELECT resolution_status FROM opportunity_outcomes ORDER BY candidate_key",
+            db_path=tmp_db,
+        )
+    }
+    assert "resolved_hit" in statuses
+    assert "resolved_miss" in statuses
+
+
+# ── 24. Radar surfaces recent track record summary ─────────────────────────
+def check_radar_recent_track_record(tmp_db: Path) -> None:
+    from analysis.radar import generate_daily_radar
+    from config import load_config
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    cfg = load_config(PROJECT_DIR / "config.yaml")
+    now = "2026-05-14T12:00:00+00:00"
+    with get_conn(tmp_db) as conn:
+        conn.execute("DELETE FROM opportunity_outcomes")
+        conn.execute(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolved_at, exit_price, realized_return,
+                resolution_status
+            ) VALUES (
+                'equity:REC_HIT', ?, 'POSSIBLE_TRADE', 'equity', 'H1', 100.0, 7,
+                ?, 105.0, 0.05, 'resolved_hit'
+            )
+            """,
+            (now, now),
+        )
+        conn.execute(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolved_at, exit_price, realized_return,
+                resolution_status
+            ) VALUES (
+                'equity:REC_MISS', ?, 'INVESTIGATE', 'equity', 'H2', 100.0, 7,
+                ?, 95.0, -0.05, 'resolved_miss'
+            )
+            """,
+            (now, now),
+        )
+    text = generate_daily_radar(cfg, db_path=tmp_db, dry_run=True)
+    assert "## Recent track record" in text
+    assert "hit 1" in text
+    assert "miss 1" in text
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -651,10 +798,22 @@ def main() -> int:
             "radar surfaces quality bar fields and exceptions",
             lambda: check_radar_quality_bar_surface(tmp_db),
         )
+        _check(
+            "outcomes snapshot creates row for POSSIBLE_TRADE candidate",
+            lambda: check_outcomes_snapshot_creates_row(tmp_db),
+        )
+        _check(
+            "outcomes resolve classifies hit vs miss correctly",
+            lambda: check_outcomes_resolve_hit_miss(tmp_db),
+        )
+        _check(
+            "radar surfaces recent track record summary",
+            lambda: check_radar_recent_track_record(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    if total == 21 and not FAILED:
-        print("\nVerify: 21/21 passed.")
+    if total == 24 and not FAILED:
+        print("\nVerify: 24/24 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:

@@ -6,7 +6,7 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
-The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar)**.
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar) + Phase H (Outcome tracking)**.
 
 | Capability | Module | Notes |
 |---|---|---|
@@ -25,7 +25,8 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Daily Radar** (Phase E) | `analysis/radar.py` | Deterministic markdown over existing tables; stored in `briefs` with `type='edge_radar_v1'`. |
 | **Polymarket ingestion + universe** (Phase F) | `ingestion/polymarket.py` | Gamma API snapshots + `market_universe` discovery (`platform='polymarket'`); sports excluded by default. |
 | **Quality Bar enrichment** (Phase G) | `analysis/opportunities.py` | Catalyst path / invalidation / risk-reward / data-health on every candidate; rows that miss the bar are deterministically capped at WATCH per PRODUCT_VISION §7. |
-| Verification harness (21 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Outcome tracking & accountability** (Phase H) | `analysis/outcomes.py` + `opportunity_outcomes` | Snapshots every `POSSIBLE_TRADE`/`INVESTIGATE` at emission, resolves after 7d (configurable) against price/odds, surfaces rolling hit-rate in the radar. |
+| Verification harness (24 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
@@ -67,6 +68,9 @@ python run.py --radar
 # Radar from existing DB only — no network calls
 python run.py --radar --no-ingest
 
+# Snapshot and resolve opportunity outcomes (no other ingestion)
+python run.py --outcomes
+
 # Dry-run any pipeline (no DB writes)
 python run.py --ingest --dry-run
 ```
@@ -99,10 +103,10 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 21-check suite against a temporary DB:
+Runs a 24-check suite against a temporary DB:
 
 1. config loads cleanly
-2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`)
+2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`, `opportunity_outcomes`)
 3. RSS URL normalization dedupes tracking params (`utm_*`, `fbclid`, `gclid`)
 4. brief generation does not crash on an empty DB
 5. `--health` prints expected sections
@@ -122,8 +126,11 @@ Runs a 21-check suite against a temporary DB:
 19. Polymarket sports markets are excluded under the default config
 20. Quality bar downgrades `POSSIBLE_TRADE` to `WATCH` when invalidation is missing
 21. Radar surfaces quality bar fields and the exceptions section
+22. Outcomes snapshot creates a row for a `POSSIBLE_TRADE` candidate with price
+23. Outcomes resolve classifies hit vs miss correctly
+24. Radar surfaces the recent track record summary
 
-Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 21/21 passed.`
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 24/24 passed.`
 
 ## Inspecting the database
 

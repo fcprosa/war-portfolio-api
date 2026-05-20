@@ -215,4 +215,30 @@ CREATE TABLE IF NOT EXISTS source_health (
     failure_count INTEGER DEFAULT 0,
     message TEXT
 );
+
+-- Outcome accountability (Phase H). Snapshots POSSIBLE_TRADE/INVESTIGATE at emission;
+-- resolves against prices / prediction-market odds after a configurable window.
+CREATE TABLE IF NOT EXISTS opportunity_outcomes (
+    id INTEGER PRIMARY KEY,
+    candidate_key TEXT NOT NULL,
+    snapshot_at TIMESTAMP NOT NULL,
+    action_at_emission TEXT NOT NULL,
+    score_at_emission REAL,
+    confidence_at_emission REAL,
+    instrument_kind TEXT,
+    instrument_symbol TEXT,
+    entry_price REAL,
+    resolution_window_days INTEGER NOT NULL DEFAULT 7,
+    resolved_at TIMESTAMP,
+    exit_price REAL,
+    realized_return REAL,
+    resolution_status TEXT NOT NULL DEFAULT 'open',
+    notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_outcomes_candidate ON opportunity_outcomes(candidate_key);
+CREATE INDEX IF NOT EXISTS idx_outcomes_status ON opportunity_outcomes(resolution_status);
+CREATE INDEX IF NOT EXISTS idx_outcomes_snapshot ON opportunity_outcomes(snapshot_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_outcomes_candidate_day
+  ON opportunity_outcomes(candidate_key, date(snapshot_at));
 """

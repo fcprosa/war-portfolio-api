@@ -13,6 +13,7 @@ Flags:
   --ingest        Run every ingestion source plus scoring + position sync (default).
   --brief         Generate the Daily Edge Brief; runs ingestion first unless --no-ingest.
   --radar         Generate the Daily Radar; runs ingestion first unless --no-ingest.
+  --outcomes      Snapshot and resolve opportunity outcomes only (no other ingestion).
   --no-ingest     Skip ingestion (use existing DB rows; pairs with --brief or --radar).
   --dry-run       Fetch and compute, but do not write any DB rows.
   --config PATH   Path to config.yaml.
@@ -72,6 +73,7 @@ def print_health(db_path: str | Path) -> None:
         "prediction_markets": query_one("SELECT COUNT(*) AS n FROM prediction_markets", db_path=db_path)["n"],
         "narrative_clusters": query_one("SELECT COUNT(*) AS n FROM narrative_clusters", db_path=db_path)["n"],
         "opportunity_candidates": query_one("SELECT COUNT(*) AS n FROM opportunity_candidates", db_path=db_path)["n"],
+        "opportunity_outcomes": query_one("SELECT COUNT(*) AS n FROM opportunity_outcomes", db_path=db_path)["n"],
         "market_universe": query_one("SELECT COUNT(*) AS n FROM market_universe", db_path=db_path)["n"],
         "alerts": query_one("SELECT COUNT(*) AS n FROM alerts", db_path=db_path)["n"],
         "briefs": query_one("SELECT COUNT(*) AS n FROM briefs", db_path=db_path)["n"],
@@ -255,6 +257,30 @@ def _run_opportunities(config: dict, args: argparse.Namespace) -> tuple[str, str
     return "ok", message
 
 
+def _run_outcomes_snapshot(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    from analysis.outcomes import snapshot_open_opportunities
+
+    result = snapshot_open_opportunities(config, Path(args.db), dry_run=args.dry_run)
+    message = (
+        f"seen {result.candidates_seen}, created {result.rows_created}, "
+        f"skipped existing {result.rows_skipped_existing}, "
+        f"missing price {result.rows_skipped_missing_price}"
+    )
+    return "ok", message
+
+
+def _run_outcomes_resolve(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    from analysis.outcomes import resolve_open_outcomes
+
+    result = resolve_open_outcomes(config, Path(args.db), dry_run=args.dry_run)
+    message = (
+        f"examined {result.rows_examined}, hit {result.rows_resolved_hit}, "
+        f"miss {result.rows_resolved_miss}, neutral {result.rows_resolved_neutral}, "
+        f"unresolvable {result.rows_resolved_unresolvable}, still open {result.rows_still_open}"
+    )
+    return "ok", message
+
+
 def _run_state_sync(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     from storage.state import sync_positions
 
@@ -316,8 +342,30 @@ async def run_ingestion(args: argparse.Namespace) -> int:
         ("polymarket", _run_polymarket, False),
         ("polymarket_discovery", _run_polymarket_discovery, False),
         ("opportunities", _run_opportunities, False),
+        ("outcomes_snapshot", _run_outcomes_snapshot, False),
+        ("outcomes_resolve", _run_outcomes_resolve, False),
         ("state_sync", _run_state_sync, False),
     ]
+    return await _run_modules(args, modules)
+
+
+async def run_outcomes(args: argparse.Namespace) -> int:
+    """Snapshot and resolve opportunity outcomes only."""
+    modules: list[tuple[str, callable, bool]] = [
+        ("outcomes_snapshot", _run_outcomes_snapshot, False),
+        ("outcomes_resolve", _run_outcomes_resolve, False),
+    ]
+    if args.dry_run:
+        db_path = Path(args.db)
+        init_db(db_path)
+        from config import load_config
+
+        config = load_config(args.config)
+        snap = _run_outcomes_snapshot(config, args)
+        resolve = _run_outcomes_resolve(config, args)
+        print(f"Gatto Farioli outcomes_snapshot: {snap[0]} — {snap[1]}")
+        print(f"Gatto Farioli outcomes_resolve: {resolve[0]} — {resolve[1]}")
+        return 0
     return await _run_modules(args, modules)
 
 
@@ -330,6 +378,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ingest", action="store_true", help="Run full ingestion pipeline")
     parser.add_argument("--brief", action="store_true", help="Generate the Daily Edge Brief v1")
     parser.add_argument("--radar", action="store_true", help="Generate the Daily Radar v1")
+    parser.add_argument(
+        "--outcomes",
+        action="store_true",
+        help="Snapshot and resolve opportunity outcomes (no other ingestion)",
+    )
     parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (pairs with --brief or --radar)")
     return parser.parse_args()
 
@@ -399,6 +452,9 @@ def main() -> int:
             if rc != 0:
                 print("Gatto Farioli: ingestion reported errors; continuing into radar with degraded data.")
         return run_radar(args)
+
+    if args.outcomes:
+        return asyncio.run(run_outcomes(args))
 
     if args.no_ingest:
         print("Gatto Farioli: --no-ingest set without --brief or --radar; nothing to do.")

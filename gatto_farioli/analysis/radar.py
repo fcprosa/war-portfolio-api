@@ -410,6 +410,87 @@ def _section_position_callouts(
     return "\n".join(lines)
 
 
+def _fetch_resolved_outcomes(
+    db_path: str | Path, *, recent_days: int,
+) -> list[dict[str, Any]]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=recent_days)).isoformat()
+    rows = query_all(
+        """
+        SELECT * FROM opportunity_outcomes
+        WHERE resolution_status LIKE 'resolved_%' AND resolved_at >= ?
+        ORDER BY resolved_at DESC
+        """,
+        (cutoff,),
+        db_path=db_path,
+    )
+    return [dict(r) for r in rows]
+
+
+def _format_realized(row: dict[str, Any]) -> str:
+    realized = row.get("realized_return")
+    if realized is None:
+        return "n/a"
+    kind = row.get("instrument_kind") or ""
+    if kind == "equity":
+        return f"{realized * 100:+.1f}%"
+    if kind in ("kalshi", "polymarket"):
+        return f"{realized:+.2f}pp"
+    return f"{realized:+.4f}"
+
+
+def _section_recent_track_record(cfg: dict[str, Any], db_path: str | Path) -> str:
+    from analysis.outcomes import recent_window_days
+
+    lines = ["## Recent track record"]
+    window = recent_window_days(cfg)
+    rows = _fetch_resolved_outcomes(db_path, recent_days=window)
+    if not rows:
+        lines.append(_EMPTY)
+        return "\n".join(lines)
+
+    hits = sum(1 for r in rows if r.get("resolution_status") == "resolved_hit")
+    misses = sum(1 for r in rows if r.get("resolution_status") == "resolved_miss")
+    neutrals = sum(1 for r in rows if r.get("resolution_status") == "resolved_neutral")
+    total = len(rows)
+
+    equity_returns = [
+        r["realized_return"] for r in rows
+        if r.get("instrument_kind") == "equity" and r.get("realized_return") is not None
+    ]
+    pm_returns = [
+        r["realized_return"] for r in rows
+        if r.get("instrument_kind") in ("kalshi", "polymarket") and r.get("realized_return") is not None
+    ]
+
+    avg_equity = (
+        f"{(sum(equity_returns) / len(equity_returns)) * 100:+.1f}%"
+        if equity_returns
+        else "n/a"
+    )
+    summary = (
+        f"Resolved last {window}d: {total} outcomes — "
+        f"hit {hits} / miss {misses} / neutral {neutrals} — "
+        f"avg realized return {avg_equity}"
+    )
+    lines.append(summary)
+    if pm_returns:
+        avg_pm = sum(pm_returns) / len(pm_returns)
+        lines.append(
+            f"Prediction markets (avg delta): {avg_pm:+.2f}pp over {len(pm_returns)} outcomes"
+        )
+
+    for row in rows[:5]:
+        snap = (row.get("snapshot_at") or "")[:10]
+        resolved = (row.get("resolved_at") or "")[:10]
+        lines.append(
+            f"- {row.get('candidate_key')} | {row.get('action_at_emission')} | "
+            f"{row.get('instrument_kind')}:{row.get('instrument_symbol')} | "
+            f"snapshot={snap} resolved={resolved} | "
+            f"realized={_format_realized(row)} | {row.get('resolution_status')}"
+        )
+    return "\n".join(lines)
+
+
 def _section_source_health(db_path: str | Path) -> str:
     lines = ["## Source-health warnings"]
     unhealthy = list_unhealthy(db_path)
@@ -479,8 +560,9 @@ def _build_radar_text(
         _section_top_opportunities(opportunities),
         _section_narratives(narratives),
         _section_position_callouts(positions, opportunities, narratives),
-        _section_source_health(db_path),
         _section_quality_bar_exceptions(db_path),
+        _section_recent_track_record(cfg, db_path),
+        _section_source_health(db_path),
         _section_missing_data(runs, staleness_hours=staleness_hours, now=now),
     ]
     return "\n\n".join(sections) + "\n"

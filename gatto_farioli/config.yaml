@@ -171,6 +171,12 @@ polymarket:
   min_open_interest: 0
   max_markets_per_run: 500
 
+outcomes:
+  resolution_window_days: 7
+  equity_hit_threshold_pct: 5.0
+  prediction_market_hit_threshold_pp: 10.0
+  recent_window_days: 14
+
 llm:
   provider: anthropic
   model_analysis: claude-sonnet-4-7-20260101

@@ -124,7 +124,8 @@ What's working on `main`:
 - Daily Radar (`analysis/radar.py`) over existing tables, stored as `edge_radar_v1`
 - Polymarket ingestion + universe discovery (Gamma API → `prediction_markets` + `market_universe`)
 - Quality Bar enrichment per PRODUCT_VISION §7 — recommendations missing catalyst / invalidation / risk-reward / data-health are downgraded to WATCH
-- 21-check verification harness (`scripts/verify.py`)
+- Outcome tracking & rolling hit-rate per PRODUCT_VISION §8 — every `POSSIBLE_TRADE`/`INVESTIGATE` is snapshotted at emission and resolved after a 7d window
+- 24-check verification harness (`scripts/verify.py`)
 
 Not yet built (deliberately): LLM enrichment, PortWatch ingestion, Telegram/email alerts.
 

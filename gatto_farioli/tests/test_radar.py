@@ -26,8 +26,9 @@ def test_empty_db_renders_all_section_headers(tmp_db, minimal_config) -> None:
         "## Top opportunities",
         "## Active & emerging narratives",
         "## Position-aware callouts",
-        "## Source-health warnings",
         "## Quality bar exceptions",
+        "## Recent track record",
+        "## Source-health warnings",
         "## Missing-data flags",
     ):
         assert header in text
@@ -192,5 +193,50 @@ def test_radar_quality_bar_exceptions_section(tmp_db, minimal_config) -> None:
 def test_radar_quality_bar_exceptions_empty_shows_no_data(tmp_db, minimal_config) -> None:
     init_db(tmp_db)
     text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
-    block = text.split("## Quality bar exceptions")[1].split("## Missing-data flags")[0]
+    block = text.split("## Quality bar exceptions")[1].split("## Recent track record")[0]
+    assert "_no data_" in block
+
+
+def test_radar_recent_track_record_with_resolved_rows(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    now = datetime.now(timezone.utc)
+    resolved_at = now.isoformat()
+    snap = (now - timedelta(days=3)).isoformat()
+    with get_conn(tmp_db) as conn:
+        conn.executemany(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                score_at_emission, confidence_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolved_at, exit_price, realized_return,
+                resolution_status
+            ) VALUES (?, ?, 'POSSIBLE_TRADE', 80.0, 8.0, 'equity', 'TR1', 100.0, 7, ?, 106.0, 0.06, 'resolved_hit')
+            """,
+            [("equity:TR1", snap, resolved_at)],
+        )
+        conn.executemany(
+            """
+            INSERT INTO opportunity_outcomes (
+                candidate_key, snapshot_at, action_at_emission,
+                score_at_emission, confidence_at_emission,
+                instrument_kind, instrument_symbol, entry_price,
+                resolution_window_days, resolved_at, exit_price, realized_return,
+                resolution_status
+            ) VALUES (?, ?, 'INVESTIGATE', 70.0, 7.0, 'equity', 'TR2', 100.0, 7, ?, 94.0, -0.06, 'resolved_miss')
+            """,
+            [("equity:TR2", snap, resolved_at)],
+        )
+
+    text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
+    assert "## Recent track record" in text
+    assert "hit 1" in text
+    assert "miss 1" in text
+    assert "equity:TR1" in text
+
+
+def test_radar_recent_track_record_empty_shows_no_data(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    text = generate_daily_radar(minimal_config, db_path=tmp_db, dry_run=True)
+    block = text.split("## Recent track record")[1].split("## Source-health warnings")[0]
     assert "_no data_" in block
