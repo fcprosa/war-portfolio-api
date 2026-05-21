@@ -14,6 +14,7 @@ Flags:
   --brief         Generate the Daily Edge Brief; runs ingestion first unless --no-ingest.
   --radar         Generate the Daily Radar; runs ingestion first unless --no-ingest.
   --outcomes      Snapshot and resolve opportunity outcomes only (no other ingestion).
+  --ask QUESTION  Ask Gatto a question about current portfolio and market state (no ingestion).
   --no-ingest     Skip ingestion (use existing DB rows; pairs with --brief or --radar).
   --dry-run       Fetch and compute, but do not write any DB rows.
   --config PATH   Path to config.yaml.
@@ -383,6 +384,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Snapshot and resolve opportunity outcomes (no other ingestion)",
     )
+    parser.add_argument(
+        "--ask",
+        type=str,
+        metavar="QUESTION",
+        help="Ask Gatto a question about current portfolio and market state (uses existing DB, no ingestion)",
+    )
     parser.add_argument("--no-ingest", action="store_true", help="Skip ingestion (pairs with --brief or --radar)")
     return parser.parse_args()
 
@@ -406,6 +413,34 @@ def run_brief(args: argparse.Namespace) -> int:
 
     record_run("brief", "ok", "daily_edge_v1 generated", started, db_path)
     print(text)
+    return 0
+
+
+def run_ask(args: argparse.Namespace) -> int:
+    """Ask Gatto a question and print a structured answer."""
+    from analysis.dialogue import ask as dialogue_ask
+    from config import load_config
+
+    db_path = Path(args.db)
+    init_db(db_path)
+    config = load_config(args.config)
+    started = datetime.now(timezone.utc)
+    try:
+        result = dialogue_ask(args.ask, config, db_path, dry_run=args.dry_run)
+    except RuntimeError as exc:
+        record_run("dialogue", "error", str(exc), started, db_path)
+        print(f"ERROR: {exc}")
+        return 1
+    if not args.dry_run:
+        msg = (
+            f"model={result.model} "
+            f"tokens={result.prompt_tokens}+{result.completion_tokens} "
+            f"context=[{result.context_summary}]"
+        )
+        record_run("dialogue", "ok", msg, started, db_path)
+    print(result.answer)
+    if args.dry_run:
+        print(f"\n[dry-run] Context: {result.context_summary}")
     return 0
 
 
@@ -438,6 +473,9 @@ def main() -> int:
     if args.health:
         print_health(Path(args.db))
         return 0
+
+    if args.ask:
+        return run_ask(args)
 
     if args.brief:
         if not args.no_ingest:

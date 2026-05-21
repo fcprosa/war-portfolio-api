@@ -6,7 +6,7 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
-The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar) + Phase H (Outcome tracking)**.
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar) + Phase H (Outcome tracking) + Phase I (LLM Dialogue)**.
 
 | Capability | Module | Notes |
 |---|---|---|
@@ -26,7 +26,8 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Polymarket ingestion + universe** (Phase F) | `ingestion/polymarket.py` | Gamma API snapshots + `market_universe` discovery (`platform='polymarket'`); sports excluded by default. |
 | **Quality Bar enrichment** (Phase G) | `analysis/opportunities.py` | Catalyst path / invalidation / risk-reward / data-health on every candidate; rows that miss the bar are deterministically capped at WATCH per PRODUCT_VISION §7. |
 | **Outcome tracking & accountability** (Phase H) | `analysis/outcomes.py` + `opportunity_outcomes` | Snapshots every `POSSIBLE_TRADE`/`INVESTIGATE` at emission, resolves after 7d (configurable) against price/odds, surfaces rolling hit-rate in the radar. |
-| Verification harness (24 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **LLM Dialogue CLI** (Phase I) | `analysis/dialogue.py` | Ask Gatto any question in plain English; context built from existing DB tables; answer via Claude API per PRODUCT_VISION §5; requires `ANTHROPIC_API_KEY` in `.env` |
+| Verification harness (27 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
@@ -46,6 +47,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env    # optional; only needed once LLM/FRED keys are wired
 ```
+
+`ANTHROPIC_API_KEY` must be set in `.env` (already in `.env.example`). Run `pip install anthropic>=0.40.0` or re-run `pip install -r requirements.txt` before using `--ask`.
 
 ## Daily commands
 
@@ -70,6 +73,14 @@ python run.py --radar --no-ingest
 
 # Snapshot and resolve opportunity outcomes (no other ingestion)
 python run.py --outcomes
+
+# Ask Gatto a question (uses existing DB — run --ingest first for fresh data)
+python run.py --ask "What are your top 5 highest-edge bets right now?"
+python run.py --ask "Why did CF drop today?"
+python run.py --ask "Which Kalshi markets are most mispriced?"
+
+# Dry-run ask (prints context summary, no API call)
+python run.py --ask "What changed in my book risk since yesterday?" --dry-run
 
 # Dry-run any pipeline (no DB writes)
 python run.py --ingest --dry-run
@@ -103,7 +114,7 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 24-check suite against a temporary DB:
+Runs a 27-check suite against a temporary DB:
 
 1. config loads cleanly
 2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`, `opportunity_outcomes`)
@@ -129,8 +140,11 @@ Runs a 24-check suite against a temporary DB:
 22. Outcomes snapshot creates a row for a `POSSIBLE_TRADE` candidate with price
 23. Outcomes resolve classifies hit vs miss correctly
 24. Radar surfaces the recent track record summary
+25. Dialogue context builder returns all 9 required keys
+26. Dialogue ask dry_run skips the API
+27. Dialogue ask calls the Anthropic API (mocked) and returns an answer
 
-Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 24/24 passed.`
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 27/27 passed.`
 
 ## Inspecting the database
 

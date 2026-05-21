@@ -125,7 +125,8 @@ What's working on `main`:
 - Polymarket ingestion + universe discovery (Gamma API → `prediction_markets` + `market_universe`)
 - Quality Bar enrichment per PRODUCT_VISION §7 — recommendations missing catalyst / invalidation / risk-reward / data-health are downgraded to WATCH
 - Outcome tracking & rolling hit-rate per PRODUCT_VISION §8 — every `POSSIBLE_TRADE`/`INVESTIGATE` is snapshotted at emission and resolved after a 7d window
-- 24-check verification harness (`scripts/verify.py`)
+- LLM Dialogue CLI per PRODUCT_VISION §5 — `python -m gatto_farioli.run --ask 'your question'` queries existing DB state and returns a structured Claude-powered answer with recommendation, confidence, evidence, risks, invalidation, and execution notes
+- 27-check verification harness (`scripts/verify.py`)
 
 Not yet built (deliberately): LLM enrichment, PortWatch ingestion, Telegram/email alerts.
 

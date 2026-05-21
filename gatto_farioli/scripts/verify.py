@@ -761,6 +761,65 @@ def check_radar_recent_track_record(tmp_db: Path) -> None:
     assert "miss 1" in text
 
 
+# ── 25. Dialogue context builder returns all 9 required keys ───────────────
+def check_dialogue_context_keys(tmp_db: Path) -> None:
+    from analysis.dialogue import _build_context
+    from storage.db import init_db
+
+    init_db(tmp_db)
+    ctx = _build_context({"theses": {}}, tmp_db)
+    for key in (
+        "as_of",
+        "positions",
+        "top_opportunities",
+        "active_narratives",
+        "recent_news",
+        "recent_outcomes",
+        "source_health_warnings",
+        "theses",
+        "last_radar",
+    ):
+        assert key in ctx, f"missing key {key}"
+    assert isinstance(ctx["positions"], list)
+    assert isinstance(ctx["last_radar"], str)
+
+
+# ── 26. Dialogue ask dry_run skips API ─────────────────────────────────────
+def check_dialogue_ask_dry_run(tmp_db: Path) -> None:
+    from unittest.mock import patch
+
+    from analysis.dialogue import ask
+    from storage.db import init_db
+
+    init_db(tmp_db)
+    with patch("analysis.dialogue.anthropic.Anthropic") as mock_anthropic:
+        result = ask("test?", {"theses": {}}, tmp_db, dry_run=True)
+        assert mock_anthropic.call_count == 0
+    assert result.answer == "[dry-run: no API call made]"
+    assert result.prompt_tokens == 0
+
+
+# ── 27. Dialogue ask calls API and returns answer ──────────────────────────
+def check_dialogue_ask_mocked_api(tmp_db: Path) -> None:
+    from unittest.mock import MagicMock, patch
+
+    from analysis.dialogue import ask
+    from storage.db import init_db
+
+    init_db(tmp_db)
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(text="mocked answer")]
+    mock_response.model = "gatto-test"
+    mock_response.usage = MagicMock(input_tokens=50, output_tokens=25)
+
+    with patch("analysis.dialogue.anthropic.Anthropic") as mock_anthropic:
+        mock_anthropic.return_value.messages.create.return_value = mock_response
+        result = ask("test?", {"theses": {}}, tmp_db)
+    assert result.answer == "mocked answer"
+    assert result.completion_tokens == 25
+    assert result.model == "gatto-test"
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -810,10 +869,22 @@ def main() -> int:
             "radar surfaces recent track record summary",
             lambda: check_radar_recent_track_record(tmp_db),
         )
+        _check(
+            "dialogue context builder returns all 9 required keys",
+            lambda: check_dialogue_context_keys(tmp_db),
+        )
+        _check(
+            "dialogue ask dry_run returns result without calling API",
+            lambda: check_dialogue_ask_dry_run(tmp_db),
+        )
+        _check(
+            "dialogue ask calls Anthropic API and returns answer",
+            lambda: check_dialogue_ask_mocked_api(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    if total == 24 and not FAILED:
-        print("\nVerify: 24/24 passed.")
+    if total == 27 and not FAILED:
+        print("\nVerify: 27/27 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:
