@@ -9,6 +9,7 @@ from typing import Any
 
 import anthropic
 
+from analysis.delta import compute_delta
 from storage.db import query_all, query_one
 from storage.source_health import list_unhealthy
 
@@ -146,6 +147,13 @@ def _build_context(config: dict, db_path: Path) -> dict:
     )
     last_radar = (radar_row["content"] if radar_row else "") or ""
 
+    try:
+        delta = compute_delta(config=config, db_path=db_path)
+    except Exception:  # noqa: BLE001
+        delta = {}
+
+    capital_config = config.get("capital") or {}
+
     return {
         "as_of": as_of,
         "positions": positions,
@@ -156,6 +164,8 @@ def _build_context(config: dict, db_path: Path) -> dict:
         "source_health_warnings": source_health_warnings,
         "theses": theses,
         "last_radar": last_radar,
+        "delta": delta,
+        "capital_config": capital_config,
     }
 
 
@@ -252,6 +262,49 @@ def _serialize_context(ctx: dict) -> str:
             lines.append(f"  breaking: {breaking}")
     else:
         lines.append("_none_")
+    lines.append("")
+
+    lines.append("## What changed (24h delta)")
+    delta = ctx.get("delta") or {}
+    portfolio_movers = delta.get("portfolio_movers") or []
+    if portfolio_movers:
+        for m in portfolio_movers:
+            lines.append(
+                f"{m.get('ticker')}: 1d={_fmt_num(m.get('pct_change'))}% "
+                f"5d={_fmt_num(m.get('pct_change_5d'))}%"
+            )
+    watchlist_movers = (delta.get("watchlist_movers") or [])[:8]
+    if watchlist_movers:
+        lines.append("watchlist movers (top 8 by 1d move):")
+        for m in watchlist_movers:
+            lines.append(
+                f"  {m.get('ticker')}: 1d={_fmt_num(m.get('pct_change'))}% "
+                f"5d={_fmt_num(m.get('pct_change_5d'))}%"
+            )
+    delta_missing = (delta.get("missing_data") or [])[:5]
+    if delta_missing:
+        lines.append("data gaps:")
+        for g in delta_missing:
+            lines.append(f"  [{g.get('category')}] {g.get('detail', '')[:100]}")
+    if not portfolio_movers and not watchlist_movers:
+        lines.append("_no significant moves in the last 24h_")
+    lines.append("")
+
+    lines.append("## Capital configuration")
+    capital = ctx.get("capital_config") or {}
+    if capital:
+        deployable = capital.get("deployable_usd", 0)
+        lines.append(
+            f"deployable: ${_fmt_num(deployable)} | "
+            f"max_daily_risk: {_fmt_num(capital.get('max_daily_risk_pct'))}% | "
+            f"max_drawdown: {_fmt_num(capital.get('max_drawdown_pct'))}% | "
+            f"max_position: {_fmt_num(capital.get('max_position_size_pct'))}% | "
+            f"horizon: {capital.get('time_horizon_days', 'n/a')}d"
+        )
+        if not deployable:
+            lines.append("  NOTE: deployable_usd=0 — set capital.deployable_usd in config.yaml for sizing answers")
+    else:
+        lines.append("_not configured — add capital: section to config.yaml_")
     lines.append("")
 
     lines.append("## Last radar")

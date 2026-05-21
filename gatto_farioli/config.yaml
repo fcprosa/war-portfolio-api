@@ -179,10 +179,19 @@ outcomes:
 
 llm:
   provider: anthropic
-  model_analysis: claude-sonnet-4-7-20260101
+  model_analysis: claude-sonnet-4-6
   model_classification: claude-haiku-4-5-20251001
   daily_token_budget: 100000
   monthly_cost_cap_usd: 15
+
+capital:
+  # Set deployable_usd to your available trading budget.
+  # All other limits are expressed as % of total portfolio market value.
+  deployable_usd: 0
+  max_daily_risk_pct: 2.0
+  max_drawdown_pct: 15.0
+  max_position_size_pct: 30.0
+  time_horizon_days: 90
 
 schedule:
   ingestion_during_market_hours: "*/30 * * * *"
