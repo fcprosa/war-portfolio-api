@@ -901,6 +901,94 @@ def check_dialogue_macro_snapshot(tmp_db: Path) -> None:
     assert unrate["value"] == 4.1
 
 
+# ── 31. Macro signals for oil group — WTI bullish ─────────────────────────
+def check_macro_signals_wti_bullish() -> None:
+    from analysis.opportunities import (
+        _DEFAULT_MACRO_SIGNALS_CFG,
+        _macro_signals_for_ticker,
+    )
+
+    result = _macro_signals_for_ticker(
+        {"oil"},
+        {"DCOILWTICO": {"value": 85.0, "change": 3.5}},
+        _DEFAULT_MACRO_SIGNALS_CFG,
+    )
+    assert "wti_momentum_bullish" in result
+    assert result
+
+
+# ── 32. Macro signals empty when macro dict empty ──────────────────────────
+def check_macro_signals_empty_when_no_macro() -> None:
+    from analysis.opportunities import (
+        _DEFAULT_MACRO_SIGNALS_CFG,
+        _macro_signals_for_category,
+        _macro_signals_for_ticker,
+    )
+
+    assert _macro_signals_for_ticker(
+        {"oil", "fertilizer"}, {}, _DEFAULT_MACRO_SIGNALS_CFG,
+    ) == []
+    assert _macro_signals_for_category(
+        "energy", {}, _DEFAULT_MACRO_SIGNALS_CFG,
+    ) == []
+
+
+# ── 33. Equity candidate evidence includes macro when rows seeded ──────────
+def check_equity_evidence_includes_macro(tmp_db: Path) -> None:
+    import json
+    from datetime import datetime, timezone
+
+    from analysis.opportunities import score_opportunities
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    now = datetime.now(timezone.utc).isoformat()
+    config = {
+        "portfolio": {"positions": [], "prediction_markets": []},
+        "theses": {},
+        "watchlist": {"oil_tankers": ["TST"]},
+        "news_sources": {"tier_1": []},
+        "alerts": {},
+        "llm": {},
+        "schedule": {},
+    }
+    with get_conn(tmp_db) as conn:
+        conn.executemany(
+            "INSERT INTO macro (indicator, date, value) VALUES (?, ?, ?)",
+            [
+                ("DCOILWTICO", "2025-12-31", 78.5),
+                ("DCOILWTICO", "2026-01-01", 82.0),
+            ],
+        )
+        conn.execute(
+            """
+            INSERT INTO prices (ticker, date, close, pct_change, pct_change_5d)
+            VALUES ('TST', '2026-05-14', 20.0, 0.5, 0.8)
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO narrative_clusters (
+                id, cluster_key, title, summary, sectors,
+                first_seen, last_seen, article_count,
+                avg_importance, max_importance, momentum_24h, momentum_7d,
+                status, related_tickers, related_markets, updated_at
+            ) VALUES (99, 'tst1', 'Oil supply risk', '{}', '["oil"]',
+                ?, ?, 4, 5.0, 6.0, 1.0, 1.0, 'active', '["TST"]', '[]', ?)
+            """,
+            (now, now, now),
+        )
+    score_opportunities(config, tmp_db)
+    with get_conn(tmp_db) as conn:
+        row = conn.execute(
+            "SELECT evidence FROM opportunity_candidates WHERE candidate_key = 'equity:TST'"
+        ).fetchone()
+    assert row is not None
+    evidence = json.loads(row["evidence"])
+    assert "macro" in evidence
+    assert "wti_momentum_bullish" in evidence["macro"]["signals"]
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -974,10 +1062,22 @@ def main() -> int:
             "dialogue context macro_snapshot populated from macro table",
             lambda: check_dialogue_macro_snapshot(tmp_db),
         )
+        _check(
+            "macro_signals_for_ticker returns wti_momentum_bullish for oil group",
+            check_macro_signals_wti_bullish,
+        )
+        _check(
+            "macro_signals_for_ticker returns empty list when macro dict empty",
+            check_macro_signals_empty_when_no_macro,
+        )
+        _check(
+            "equity candidate evidence includes macro key when macro rows seeded",
+            lambda: check_equity_evidence_includes_macro(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    if total == 30 and not FAILED:
-        print("\nVerify: 30/30 passed.")
+    if total == 33 and not FAILED:
+        print("\nVerify: 33/33 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:

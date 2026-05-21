@@ -127,7 +127,8 @@ What's working on `main`:
 - Outcome tracking & rolling hit-rate per PRODUCT_VISION §8 — every `POSSIBLE_TRADE`/`INVESTIGATE` is snapshotted at emission and resolved after a 7d window
 - LLM Dialogue CLI per PRODUCT_VISION §5 — `python -m gatto_farioli.run --ask 'your question'` queries existing DB state and returns a structured Claude-powered answer with recommendation, confidence, evidence, risks, invalidation, and execution notes
 - FRED macro ingestion per PRODUCT_VISION §3.1 — 13 macro series (rates, inflation, WTI, spreads) stored in `macro` table on every `--ingest` run; dialogue context includes `## Macro snapshot`
-- 30-check verification harness (`scripts/verify.py`)
+- Macro signal integration per PRODUCT_VISION §3.1 — FRED macro snapshot drives deterministic score/confidence boosts in opportunity scoring; WTI momentum, inflation breakeven, yield curve, and HY spread signals fire against watchlist groups and Kalshi categories
+- 33-check verification harness (`scripts/verify.py`)
 
 Not yet built (deliberately): LLM enrichment, PortWatch ingestion, Telegram/email alerts.
 

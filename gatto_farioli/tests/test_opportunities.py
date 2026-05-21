@@ -13,7 +13,9 @@ from analysis.opportunities import (
     ACTION_POSSIBLE_TRADE,
     ACTION_WATCH,
     _Candidate,
+    _DEFAULT_MACRO_SIGNALS_CFG,
     _apply_quality_bar_downgrade,
+    _macro_signals_for_ticker,
     compute_quality_bar,
     score_opportunities,
     upsert_opportunity_candidates,
@@ -435,3 +437,126 @@ def test_apply_quality_bar_downgrade_caps_investigate(tmp_db, minimal_config) ->
     )
     _apply_quality_bar_downgrade(c, {"passed": False, "missing_items": ["invalidation_trigger"]})
     assert c.action == ACTION_WATCH
+
+
+def test_macro_signals_for_ticker_empty_macro_returns_empty() -> None:
+    assert _macro_signals_for_ticker({"oil"}, {}, {}) == []
+
+
+def test_macro_signals_for_ticker_wti_bullish() -> None:
+    result = _macro_signals_for_ticker(
+        {"oil"},
+        {"DCOILWTICO": {"value": 82.0, "change": 3.5}},
+        _DEFAULT_MACRO_SIGNALS_CFG,
+    )
+    assert "wti_momentum_bullish" in result
+
+
+def test_macro_signals_for_ticker_fertilizer_inflation() -> None:
+    result = _macro_signals_for_ticker(
+        {"fertilizer"},
+        {
+            "T5YIE": {"value": 2.8, "change": 0.1},
+            "DCOILWTICO": {"value": 80.0, "change": 0.5},
+        },
+        _DEFAULT_MACRO_SIGNALS_CFG,
+    )
+    assert "inflation_breakeven_elevated" in result
+    assert "wti_momentum_bullish" not in result
+
+
+def test_macro_signals_empty_when_macro_table_empty(tmp_db, minimal_config) -> None:
+    init_db(tmp_db)
+    now = datetime.now(timezone.utc).isoformat()
+    minimal_config["watchlist"] = {"fertilizer": ["CF"]}
+    with get_conn(tmp_db) as conn:
+        _insert_narrative(conn, id_=20, title="Fertilizer squeeze", sectors='["fertilizer"]')
+        conn.execute(
+            """
+            INSERT INTO news (url_hash, url, source, title, summary, sectors, importance, published_at)
+            VALUES ('cf1', 'https://x/cf', 'X', 'Potash prices rise', 'Up', 'fertilizer', 6.0, ?)
+            """,
+            (now,),
+        )
+        conn.execute(
+            """
+            INSERT INTO prices (ticker, date, close, pct_change, pct_change_5d)
+            VALUES ('CF', '2026-05-14', 90.0, 0.5, 0.8)
+            """
+        )
+    result = score_opportunities(minimal_config, db_path=tmp_db)
+    assert result.candidates_scored >= 1
+    row = query_one(
+        "SELECT evidence FROM opportunity_candidates WHERE candidate_key = 'equity:CF'",
+        db_path=tmp_db,
+    )
+    assert row is not None
+    evidence = json.loads(row["evidence"] or "{}")
+    assert "macro" not in evidence
+
+
+def test_equity_candidate_score_boosted_by_macro_signals(tmp_path, minimal_config) -> None:
+    """Score with macro rows should exceed score without macro for the same setup."""
+    now = datetime.now(timezone.utc).isoformat()
+    cfg = dict(minimal_config)
+    cfg["watchlist"] = {"oil_tankers": ["FRO"]}
+
+    db_with_macro = tmp_path / "with_macro.db"
+    db_without = tmp_path / "without_macro.db"
+    for db in (db_with_macro, db_without):
+        init_db(db)
+
+    def _seed_fro(db) -> None:
+        with get_conn(db) as conn:
+            conn.execute(
+                """
+                INSERT INTO narrative_clusters (
+                    id, cluster_key, title, summary, sectors,
+                    first_seen, last_seen, article_count,
+                    avg_importance, max_importance, momentum_24h, momentum_7d,
+                    status, related_tickers, related_markets, updated_at
+                ) VALUES (30, 'fro1', 'Oil tanker rates surge', '{}', '["oil"]',
+                    ?, ?, 5, 6.0, 7.0, 2.0, 1.5, 'active', '["FRO"]', '[]', ?)
+                """,
+                (now, now, now),
+            )
+            conn.execute(
+                """
+                INSERT INTO news (url_hash, url, source, title, summary, sectors, importance, published_at)
+                VALUES ('fro1', 'https://x/fro', 'X', 'Tanker day rates jump', 'Oil', 'oil', 7.0, ?)
+                """,
+                (now,),
+            )
+            conn.execute(
+                """
+                INSERT INTO prices (ticker, date, close, pct_change, pct_change_5d)
+                VALUES ('FRO', '2026-05-14', 25.0, 0.5, 0.8)
+                """
+            )
+
+    _seed_fro(db_with_macro)
+    _seed_fro(db_without)
+    with get_conn(db_with_macro) as conn:
+        conn.executemany(
+            "INSERT INTO macro (indicator, date, value) VALUES (?, ?, ?)",
+            [
+                ("DCOILWTICO", "2026-01-01", 79.0),
+                ("DCOILWTICO", "2026-01-02", 82.0),
+            ],
+        )
+
+    score_opportunities(cfg, db_path=db_without)
+    score_opportunities(cfg, db_path=db_with_macro)
+
+    row_without = query_one(
+        "SELECT score, evidence FROM opportunity_candidates WHERE candidate_key = 'equity:FRO'",
+        db_path=db_without,
+    )
+    row_with = query_one(
+        "SELECT score, evidence FROM opportunity_candidates WHERE candidate_key = 'equity:FRO'",
+        db_path=db_with_macro,
+    )
+    assert row_without is not None and row_with is not None
+    evidence = json.loads(row_with["evidence"] or "{}")
+    assert "wti_momentum_bullish" in evidence["macro"]["signals"]
+    assert row_with["score"] >= row_without["score"] + 5.0

@@ -214,3 +214,11 @@ fred:
   # series_map:
   #   DFF: "Fed Funds Rate"
   #   DGS10: "10Y Treasury"
+
+macro_signals:
+  # Thresholds used by the scoring layer to fire macro signals.
+  # All keys are optional — the module uses the defaults below if omitted.
+  wti_momentum_abs: 2.0           # |DCOILWTICO change| in USD
+  inflation_breakeven_floor: 2.5  # T5YIE value in %
+  hy_spread_elevated: 4.5         # BAMLH0A0HYM2 value in %
+  yield_curve_inversion: 0.0      # T10Y2Y value in % (< this → inverted)

@@ -6,7 +6,7 @@ This folder is intentionally self-contained. Run all Python commands from here.
 
 ## What works today
 
-The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar) + Phase H (Outcome tracking) + Phase I (LLM Dialogue) + Phase J (FRED Macro)**.
+The current `main` branch covers **Session 1 foundation + hardening + Phase A–C + Phase D foundation + Phase E (Daily Radar) + Phase F (Polymarket) + Phase G (Quality Bar) + Phase H (Outcome tracking) + Phase I (LLM Dialogue) + Phase J (FRED Macro) + Phase K (Macro Signals)**.
 
 | Capability | Module | Notes |
 |---|---|---|
@@ -28,7 +28,8 @@ The current `main` branch covers **Session 1 foundation + hardening + Phase A–
 | **Outcome tracking & accountability** (Phase H) | `analysis/outcomes.py` + `opportunity_outcomes` | Snapshots every `POSSIBLE_TRADE`/`INVESTIGATE` at emission, resolves after 7d (configurable) against price/odds, surfaces rolling hit-rate in the radar. |
 | **LLM Dialogue CLI** (Phase I) | `analysis/dialogue.py` | Ask Gatto any question in plain English; context built from existing DB tables; answer via Claude API per PRODUCT_VISION §5; requires `ANTHROPIC_API_KEY` in `.env` |
 | **FRED macro ingestion** (Phase J) | `ingestion/macro.py` | 13 curated series (rates, inflation, growth, commodities, dollar, credit) via FRED API; skips cleanly if `FRED_API_KEY` unset; enriches `--ask` dialogue context with `## Macro snapshot` |
-| Verification harness (30 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
+| **Macro signal integration** (Phase K) | `analysis/opportunities.py` | Reads `macro` table in `_load_context`; triggers `wti_momentum_bullish/bearish`, `inflation_breakeven_elevated`, `yield_curve_inverted`, `risk_off_tailwind`, `hy_spread_elevated`, `fed_funds_moving`; bounded score (+5/signal, max +15) and confidence (+0.5/signal, max +1.5) boost; no-op when macro table is empty |
+| Verification harness (33 checks) | `scripts/verify.py` | Self-checks run against a temp DB so `argos.db` is safe. |
 
 ## What is intentionally not in this build
 
@@ -117,7 +118,7 @@ Tests cover config validation, RSS URL normalization/dedupe, `entry_to_row` pars
 python scripts/verify.py
 ```
 
-Runs a 30-check suite against a temporary DB:
+Runs a 33-check suite against a temporary DB:
 
 1. config loads cleanly
 2. every schema table is created (incl. `narrative_clusters`, `market_universe`, `source_health`, `opportunity_candidates`, `opportunity_outcomes`)
@@ -149,8 +150,11 @@ Runs a 30-check suite against a temporary DB:
 28. Macro ingest skips cleanly when `FRED_API_KEY` is absent
 29. Macro ingest upserts rows with mocked FRED
 30. Dialogue context `macro_snapshot` populated from the `macro` table
+31. `macro_signals_for_ticker` returns `wti_momentum_bullish` for oil group
+32. `macro_signals_for_ticker` / `_macro_signals_for_category` return empty when macro dict empty
+33. Equity candidate `evidence` includes `macro` key when macro rows seeded
 
-Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 30/30 passed.`
+Exit code is non-zero on the first failure. On full success the summary line reads `Verify: 33/33 passed.`
 
 ## Inspecting the database
 
