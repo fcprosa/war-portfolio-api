@@ -167,6 +167,22 @@ def _run_prices(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     return status, message
 
 
+def _run_macro(config: dict, args: argparse.Namespace) -> tuple[str, str]:
+    from ingestion.macro import ingest_macro
+
+    result = ingest_macro(config, db_path=args.db, dry_run=args.dry_run)
+    if result.skipped:
+        return "skipped", result.skip_reason
+    message = (
+        f"series {result.series_succeeded}/{result.series_attempted}, "
+        f"rows {result.rows_upserted}, failures {len(result.failures)}"
+    )
+    for f in result.failures:
+        print(f"  WARN macro series failed: {f['series']} — {f['error']}")
+    status = "ok" if result.series_succeeded else "error"
+    return status, message
+
+
 def _run_kalshi(config: dict, args: argparse.Namespace) -> tuple[str, str]:
     from ingestion.kalshi import ingest_kalshi_markets
     from storage import source_health
@@ -338,6 +354,7 @@ async def run_ingestion(args: argparse.Namespace) -> int:
         ("news_score", _run_news_score, False),
         ("narratives", _run_narratives, False),
         ("prices", _run_prices, False),
+        ("macro", _run_macro, False),
         ("kalshi", _run_kalshi, False),
         ("kalshi_discovery", _run_kalshi_discovery, False),
         ("polymarket", _run_polymarket, False),

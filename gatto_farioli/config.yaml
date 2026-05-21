@@ -204,3 +204,13 @@ radar:
   top_n: 10
   staleness_hours: 36
   narrative_max: 8
+
+fred:
+  lookback_days: 90
+  # Uncomment and edit to override the default 13-series list.
+  # series_map is a dict of FRED_ID: "human label".
+  # If omitted, the module uses its curated default covering rates,
+  # inflation, growth, commodities, dollar, and credit.
+  # series_map:
+  #   DFF: "Fed Funds Rate"
+  #   DGS10: "10Y Treasury"

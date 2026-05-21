@@ -820,6 +820,87 @@ def check_dialogue_ask_mocked_api(tmp_db: Path) -> None:
     assert result.model == "gatto-test"
 
 
+# ── 28. Macro ingest skips when FRED_API_KEY absent ────────────────────────
+def check_macro_ingest_skips_without_key(tmp_db: Path) -> None:
+    import os
+
+    from ingestion.macro import ingest_macro
+    from storage.db import init_db, query_one
+
+    init_db(tmp_db)
+    saved = os.environ.pop("FRED_API_KEY", None)
+    try:
+        result = ingest_macro({}, tmp_db)
+        assert result.skipped is True, "expected skipped when FRED_API_KEY absent"
+        assert result.rows_upserted == 0
+        row = query_one("SELECT COUNT(*) AS n FROM macro", db_path=tmp_db)
+        assert row["n"] == 0
+    finally:
+        if saved is not None:
+            os.environ["FRED_API_KEY"] = saved
+
+
+# ── 29. Macro ingest upserts rows with mocked FRED ─────────────────────────
+def check_macro_ingest_upserts_mocked(tmp_db: Path) -> None:
+    import os
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from ingestion.macro import ingest_macro
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    saved = os.environ.get("FRED_API_KEY")
+    os.environ["FRED_API_KEY"] = "verify_test"
+    try:
+        with patch("fredapi.Fred") as mock_fred_cls:
+            mock_fred = mock_fred_cls.return_value
+            mock_fred.get_series.return_value = pd.Series(
+                {
+                    pd.Timestamp("2026-01-10"): 4.5,
+                    pd.Timestamp("2026-01-11"): 4.6,
+                }
+            )
+            result = ingest_macro(
+                {"fred": {"series_map": {"DGS10": "10Y"}}},
+                tmp_db,
+            )
+        assert result.rows_upserted == 2
+        assert result.series_succeeded == 1
+        with get_conn(tmp_db) as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM macro WHERE indicator='DGS10'"
+            ).fetchone()[0]
+        assert count == 2
+    finally:
+        if saved is None:
+            os.environ.pop("FRED_API_KEY", None)
+        else:
+            os.environ["FRED_API_KEY"] = saved
+
+
+# ── 30. Dialogue context macro_snapshot from macro table ───────────────────
+def check_dialogue_macro_snapshot(tmp_db: Path) -> None:
+    from analysis.dialogue import _build_context
+    from storage.db import get_conn, init_db
+
+    init_db(tmp_db)
+    with get_conn(tmp_db) as conn:
+        conn.execute(
+            "INSERT INTO macro (indicator, date, value) VALUES (?, ?, ?)",
+            ("UNRATE", "2026-01-15", 4.1),
+        )
+    ctx = _build_context({"theses": {}}, tmp_db)
+    assert "macro_snapshot" in ctx
+    unrate = next(
+        (r for r in ctx["macro_snapshot"] if r["indicator"] == "UNRATE"),
+        None,
+    )
+    assert unrate is not None, "UNRATE row missing from macro_snapshot"
+    assert unrate["value"] == 4.1
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 def main() -> int:
     print(f"Gatto Farioli verify — project at {PROJECT_DIR}\n")
@@ -881,10 +962,22 @@ def main() -> int:
             "dialogue ask calls Anthropic API and returns answer",
             lambda: check_dialogue_ask_mocked_api(tmp_db),
         )
+        _check(
+            "macro ingest skips cleanly when FRED_API_KEY absent",
+            lambda: check_macro_ingest_skips_without_key(tmp_db),
+        )
+        _check(
+            "macro ingest upserts rows with mocked FRED",
+            lambda: check_macro_ingest_upserts_mocked(tmp_db),
+        )
+        _check(
+            "dialogue context macro_snapshot populated from macro table",
+            lambda: check_dialogue_macro_snapshot(tmp_db),
+        )
 
     total = len(PASSED) + len(FAILED)
-    if total == 27 and not FAILED:
-        print("\nVerify: 27/27 passed.")
+    if total == 30 and not FAILED:
+        print("\nVerify: 30/30 passed.")
     else:
         print(f"\nVerify: {len(PASSED)}/{total} passed.")
     if FAILED:

@@ -75,6 +75,31 @@ def _build_context(config: dict, db_path: Path) -> dict:
 
     positions = _rows_to_dicts(query_all("SELECT * FROM positions", db_path=db_path))
 
+    macro_snapshot = _rows_to_dicts(
+        query_all(
+            """
+            SELECT m.indicator, m.date, m.value,
+                   prev.value AS prev_value
+            FROM macro m
+            LEFT JOIN macro prev
+              ON prev.indicator = m.indicator
+             AND prev.date = (
+                   SELECT date FROM macro
+                   WHERE indicator = m.indicator
+                     AND date < m.date
+                   ORDER BY date DESC LIMIT 1
+                 )
+            WHERE m.date = (
+                  SELECT date FROM macro AS inner
+                  WHERE inner.indicator = m.indicator
+                  ORDER BY date DESC LIMIT 1
+                )
+            ORDER BY m.indicator
+            """,
+            db_path=db_path,
+        )
+    )
+
     top_opportunities = _rows_to_dicts(
         query_all(
             """
@@ -157,6 +182,7 @@ def _build_context(config: dict, db_path: Path) -> dict:
     return {
         "as_of": as_of,
         "positions": positions,
+        "macro_snapshot": macro_snapshot,
         "top_opportunities": top_opportunities,
         "active_narratives": active_narratives,
         "recent_news": recent_news,
@@ -180,6 +206,23 @@ def _serialize_context(ctx: dict) -> str:
                 f"avg_cost={_fmt_num(p.get('avg_cost'))} | "
                 f"current_price={_fmt_num(p.get('current_price'))} | "
                 f"unrealized_pnl={_fmt_num(p.get('unrealized_pnl'))}"
+            )
+    else:
+        lines.append("_none_")
+    lines.append("")
+
+    lines.append("## Macro snapshot")
+    if ctx.get("macro_snapshot"):
+        for row in ctx["macro_snapshot"]:
+            value = row.get("value")
+            prev_value = row.get("prev_value")
+            if value is not None and prev_value is not None:
+                chg = f"{float(value) - float(prev_value):.3f}"
+            else:
+                chg = "n/a"
+            lines.append(
+                f"{row.get('indicator')} | {row.get('date')} | "
+                f"{_fmt_num(value)} | chg={chg}"
             )
     else:
         lines.append("_none_")
@@ -334,6 +377,7 @@ def ask(
     serialized = _serialize_context(ctx)
     context_summary = (
         f"positions={len(ctx['positions'])} "
+        f"macro={len(ctx.get('macro_snapshot', []))} "
         f"opps={len(ctx['top_opportunities'])} "
         f"narratives={len(ctx['active_narratives'])} "
         f"news={len(ctx['recent_news'])} "
